@@ -63,8 +63,7 @@ jobs:
           else
             BUILD_ARGS=`echo ${{ inputs.build_args }} | sed -e 's/[ ]/ --build-args /g' | sed -e 's/^/--build-args /'`
           fi
-          ls -la ${{ inputs.dockerfile_path }}
-          echo "docker build --file ${{ inputs.dockerfile_path }} --tag ${{ env.image_url }} ${BUILD_ARGS}"
+          docker build --file ${{ inputs.dockerfile_path }} --tag ${{ env.image_url }} ${BUILD_ARGS}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
