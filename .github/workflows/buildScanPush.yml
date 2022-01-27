@@ -49,7 +49,7 @@ jobs:
 
       - name: Prepare the image name and tag
         run: |
-          echo "image_url=${{ inputs.repository }}/${{ inputs.image_name }}:${ inputs.tag }" >> $GITHUB_ENV
+          echo "image_url=${{ inputs.repository }}/${{ inputs.image_name }}:${{ inputs.tag }}" >> $GITHUB_ENV
           # echo "::set-output name=image_url::$image_url"
 
       - name: Build the Docker image
