@@ -23,10 +23,10 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-    outputs:
-      image_url:
-        description: Image url
-        value: ${{ jobs.build.outputs.image_url }}
+    # outputs:
+    #   image_url:
+    #     description: Image url
+    #     value: ${{ jobs.build.outputs.image_url }}
 
 jobs:
   build:
@@ -50,7 +50,7 @@ jobs:
       - name: Prepare the image name and tag
         run: |
           image_url="${{ inputs.repository }}/${{ inputs.image_name }}:${ inputs.image_tag}" >> $GITHUB_ENV
-          echo "::set-output name=image_url::$image_url"
+          # echo "::set-output name=image_url::$image_url"
 
       - name: Build the Docker image
         run: >
@@ -60,12 +60,12 @@ jobs:
           else
             BUILD_ARGS=`echo ${{ inputs.build_args }} | sed -e 's/[ ]/ --build-args /g' | sed -e 's/^/--build-args /'`
           fi
-          docker build --file Dockerfile --tag ${{ outputs.image_url }} ${BUILD_ARGS}
+          docker build --file Dockerfile --tag ${{ env.image_url }} ${BUILD_ARGS}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ outputs.image_url }}
+          image-ref: ${{ env.image_url }}
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
@@ -74,4 +74,4 @@ jobs:
 
       - name: Push tag to AWS ECR
         run: |
-          docker push ${{ outputs.image_url }}
+          docker push ${{ env.image_url }}
