@@ -62,7 +62,7 @@ jobs:
           IFS=' ' read -r -a tags <<< ${{ inputs.tags }}
           for tag in "${tags[@]}"
             do
-              image_tags=${image_tags}" --tags ${{ inputs.repository }}/${{ inputs.image_name }}:$tag"
+              image_tags=${image_tags}" --tag ${{ inputs.repository }}/${{ inputs.image_name }}:$tag"
             done
 
           # Export first tag for image scan
