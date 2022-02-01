@@ -82,4 +82,4 @@ jobs:
 
       - name: Push tag to AWS ECR
         run: |
-          docker push image --all-tags ${{ inputs.repository }}/${{ inputs.image_name }}
+          docker image image --all-tags ${{ inputs.repository }}/${{ inputs.image_name }}
