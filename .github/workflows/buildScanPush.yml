@@ -21,6 +21,9 @@ on:
       dockerfile_path:
         default: "."
         type: string
+      exit_on_scan_fail:
+        default: 0
+        type: string
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -65,7 +68,7 @@ jobs:
         with:
           image-ref: ${{ env.image_url }}
           format: "table"
-          exit-code: "0"
+          exit-code: ${{ inputs.exit_on_scan_fail }}
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
