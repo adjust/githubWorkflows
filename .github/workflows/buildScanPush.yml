@@ -6,7 +6,7 @@ on:
       image_name:
         required: true
         type: string
-      tag:
+      tags:
         default: "latest"
         type: string
       repository:
@@ -49,10 +49,6 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Prepare the image name and tag
-        run: |
-          echo "image_url=${{ inputs.repository }}/${{ inputs.image_name }}:${{ inputs.tag }}" >> $GITHUB_ENV
-
       - name: Build the Docker image
         run: |
           if [ -z ${{ inputs.build_args }} ]
@@ -60,13 +56,24 @@ jobs:
             BUILD_ARGS=""
           else
             BUILD_ARGS=`echo ${{ inputs.build_args }} | sed -e 's/[ ]/ --build-args /g' | sed -e 's/^/--build-args /'`
-          fi
-          docker build --file ${{ inputs.dockerfile_path }}/Dockerfile --tag latest --tag ${{ env.image_url }} ${BUILD_ARGS} ${{ inputs.dockerfile_path }}
+          fi 
+
+          image_tags=""
+          IFS=' ' read -r -a tags <<< ${{ inputs.tags }}
+          for tag in "${tags[@]}"
+            do
+              image_tags=${image_tags}" --tags ${{ inputs.repository }}/${{ inputs.image_name }}:$tag"
+            done
+
+          # Export first tag for image scan
+          echo "image_tag=${{ inputs.repository }}/${{ inputs.image_name }}:${tag[0]}" >> $GITHUB_ENV
+
+          docker build --file ${{ inputs.dockerfile_path }}/Dockerfile ${image_tags} ${BUILD_ARGS} ${{ inputs.dockerfile_path }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.image_url }}
+          image-ref: "${{ env.image_tag }}"
           format: "table"
           exit-code: ${{ inputs.exit_on_scan_fail }}
           ignore-unfixed: true
@@ -75,4 +82,4 @@ jobs:
 
       - name: Push tag to AWS ECR
         run: |
-          docker push ${{ env.image_url }}
+          docker push image --all-tags ${{ inputs.repository }}/${{ inputs.image_name }}
