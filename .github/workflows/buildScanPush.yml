@@ -60,7 +60,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-${{ github.ref }}
 
-      - name: Docker metadata
+      - name: Extract docker metadata
         id: meta
         uses: docker/metadata-action@v3
         with:
