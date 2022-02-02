@@ -51,6 +51,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
+          # CONSTRUCT BUILD ARGUMENTS FROM A STRING
           if [ -z ${{ inputs.build_args }} ]
           then
             BUILD_ARGS=""
@@ -58,6 +59,7 @@ jobs:
             BUILD_ARGS=`echo ${{ inputs.build_args }} | sed -e 's/[ ]/ --build-args /g' | sed -e 's/^/--build-args /'`
           fi 
 
+          # CONSTRUCT TAGS FROM STRING
           image_tags=""
           IFS=' ' read -r -a tags <<< ${{ inputs.tags }}
           for tag in "${tags[@]}"
@@ -65,7 +67,7 @@ jobs:
               image_tags=${image_tags}" --tag ${{ inputs.repository }}/${{ inputs.image_name }}:$tag"
             done
 
-          # Export first tag for image scan
+          # EXPORT ONE TAG FOR FURTHER USE IN SCAN
           echo "image_tag=${{ inputs.repository }}/${{ inputs.image_name }}:${tag[0]}" >> $GITHUB_ENV
 
           docker build --file ${{ inputs.dockerfile_path }}/Dockerfile ${image_tags} ${BUILD_ARGS} ${{ inputs.dockerfile_path }}
@@ -80,6 +82,6 @@ jobs:
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
-      - name: Push tag to AWS ECR
+      - name: Push images to AWS ECR
         run: |
           docker image push --all-tags ${{ inputs.repository }}/${{ inputs.image_name }}
