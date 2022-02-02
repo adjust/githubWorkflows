@@ -60,7 +60,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-        name: Docker metadata
+      - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v3
         with:
@@ -72,16 +72,15 @@ jobs:
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
             type=ref,event=pr
             type=ref,event=branch
-            type=raw,${{ inputs.tags }}
+            type=raw,${{ inputs.tags   }}
 
-        name: Build
+      - name: Build
         uses: docker/build-push-action@v2
         with:
           context: ${{ steps.meta.outputs.tags }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: ${{ inputs.build_args }}
-
 
       # - name: Build the Docker image
       #   run: |
@@ -91,7 +90,7 @@ jobs:
       #       BUILD_ARGS=""
       #     else
       #       BUILD_ARGS=`echo ${{ inputs.build_args }} | sed -e 's/[ ]/ --build-args /g' | sed -e 's/^/--build-args /'`
-      #     fi 
+      #     fi
 
       #     # CONSTRUCT TAGS FROM STRING
       #     image_tags=""
