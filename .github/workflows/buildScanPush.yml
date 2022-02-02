@@ -56,9 +56,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ inputs.ref }}
+          key: ${{ runner.os }}-buildx-${{ github.ref }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-buildx-${{ github.ref }}
 
       - name: Docker metadata
         id: meta
@@ -67,12 +67,12 @@ jobs:
           # list of Docker images to use as base name for tags
           images: |
             ${{ inputs.repository }}/${{ inputs.image_name}}
-          # generate Docker tags based on the following events/attributes
+          # Generate tags
           tags: |
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
             type=raw,${{ inputs.tags }}
 
-      - name: Build
+      - name: Build locally before tests and scan
         uses: docker/build-push-action@v2
         with:
           context: ${{ inputs.dockerfile_path }}
@@ -103,7 +103,8 @@ jobs:
 
       #     docker build --file ${{ inputs.dockerfile_path }}/Dockerfile ${image_tags} ${BUILD_ARGS} ${{ inputs.dockerfile_path }}
 
-      - name: Run Trivy vulnerability scanner
+      # Trivy vulnerability scan
+      - name: Run vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta.outputs.tags }}
