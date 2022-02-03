@@ -82,7 +82,7 @@ jobs:
 
       - id: get-first-tag
         run: |
-          first_tag=$(echo ${{steps.meta.outputs.tags}} | cut -d$'\n' -f1)
+          first_tag=$(echo "${{steps.meta.outputs.tags}}" | cut -d$'\n' -f1)
           echo "::set-output name=first_tag::$first_tag"
 
       # Trivy vulnerability scan
