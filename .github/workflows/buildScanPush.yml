@@ -80,7 +80,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           build-args: ${{ inputs.build_args }}
 
-      - run: echo ${{ steps.meta.outputs.tags }}
+      - run: echo ${{ steps.meta.outputs.tags }} | cut -d$'\n' -f1
 
       # Trivy vulnerability scan
       - name: Run vulnerability scanner
