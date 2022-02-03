@@ -80,13 +80,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           build-args: ${{ inputs.build_args }}
 
-      - run: echo ${{ toJson(steps.meta.outputs.tags) }}
+      - id: get-first-tag
+        run: |
+          first_tag=$(echo ${{steps.meta.outputs.tags}} | cut -d$'\n' -f1)
+          echo "::set-output name=first_tag::$first_tag"
 
       # Trivy vulnerability scan
       - name: Run vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.meta.outputs.tags[0] }}
+          image-ref: ${{ steps.get-first-tag.outputs.first_tag }}
           format: "table"
           exit-code: ${{ inputs.exit_on_scan_fail }}
           ignore-unfixed: true
