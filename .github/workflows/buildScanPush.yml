@@ -81,6 +81,7 @@ jobs:
           build-args: ${{ inputs.build_args }}
 
       - id: get-first-tag
+        name: Get tag for scan
         run: |
           first_tag=$(echo "${{steps.meta.outputs.tags}}" | cut -d$'\n' -f1)
           echo "::set-output name=first_tag::$first_tag"
