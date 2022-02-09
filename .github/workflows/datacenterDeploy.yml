@@ -66,7 +66,7 @@ jobs:
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
           submodules: recursive
           path: cloudplatform
-          ref: workflow
+          ref: master
 
       - name: Setup cloudplatform repository
         run: |
