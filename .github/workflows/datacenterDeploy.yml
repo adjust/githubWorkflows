@@ -33,7 +33,7 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      GITHUB_TOKEN:
+      TEAM_GITHUB_TOKEN:
         required: true
       VAULT_TOKEN:
         required: true
