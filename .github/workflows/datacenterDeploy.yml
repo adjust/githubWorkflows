@@ -97,7 +97,7 @@ jobs:
             -i \
             -w /root \
             -e USER=${{ inputs.USER }} \
-            -e AWS_DEFAULT_REGION=${{ input.region }} \
+            -e AWS_DEFAULT_REGION=${{ inputs.region }} \
             -e AWS_REGION=${{ inputs.region }} \
             -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
             -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
