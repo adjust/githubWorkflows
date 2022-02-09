@@ -1,0 +1,93 @@
+name: Deploy datacenter
+
+on:
+  workflow_call:
+    inputs:
+      dcname:
+        description: "Name of the datacenter"
+        required: true
+      goal:
+        description: "Make goal to execute"
+        required: true
+        default: ""
+      region:
+        description: "Region where datacenter is deployed"
+        required: false
+        default: "eu-central-1"
+      user:
+        description: "Username of the entity deploying the datacenter"
+        required: true
+      vault:
+        description: "Vault address"
+        required: true
+      registry:
+        description: "Container registry"
+        required: true
+      runner:
+        description: "Docker image used to spin up the deploy runner"
+        required: false
+        default: "platform-actions-builder:ubuntu20_04"
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+      VAULT_TOKEN:
+        required: true
+jobs:
+  run:
+    name: Making goal "${{ github.event.inputs.goal }}"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get datacenter repository
+        uses: actions/checkout@v2
+
+      - name: Get cloudplatform repository
+        uses: actions/checkout@v2
+        with:
+          repository: adjust/cloudplatform
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+          path: cloudplatform
+          ref: workflow
+
+      - name: Setup cloudplatform repository
+        run: |
+          ln -s cloudplatform/Makefile Makefile
+          touch identity.tfvars
+          echo "aws_access_key = \"${{ secrets.AWS_ACCESS_KEY_ID }}\"" > identity.tfvars
+          echo "aws_secret_key = \"${{ secrets.AWS_SECRET_ACCESS_KEY }}\"" >> identity.tfvars
+          echo "username" = \""${{ inputs.user }}\"" >> identity.tfvars
+
+      - name: Login to AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Read certificates and keys from vault
+        run: |
+          mkdir -p certs
+          curl -s --header "X-Vault-Token: ${{ secrets.VAULT_TOKEN }}" ${{ inputs.vault }}/v1/secret/data/${{ inputs.dcname }}/platform/tls.pem | jq -r ".data.data.cert" > certs/tls.pem
+          curl -s --header "X-Vault-Token: ${{ secrets.VAULT_TOKEN }}" ${{ inputs.vault }}/v1/secret/data/${{ inputs.dcname }}/platform/tls.key | jq -r ".data.data.key" > certs/tls.key
+      - name: Making goal "${{ inputs.goal }}"
+        run: |
+          docker run \
+            -i \
+            -w /root \
+            -e USER=${{ inputs.USER }} \
+            -e AWS_DEFAULT_REGION=${{ input.region }} \
+            -e AWS_REGION=${{ inputs.region }} \
+            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            -v ${GITHUB_WORKSPACE}:/root:rw \
+            "${{ inputs.registry }}/${{ inputs.runner }}" \
+            make ${{ inputs.goal }}
