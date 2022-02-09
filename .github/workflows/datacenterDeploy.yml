@@ -89,7 +89,7 @@ jobs:
       - name: Read certificates and keys from vault
         run: |
           mkdir -p certs
-          echo ${{ secrets.VAULT_TOKEN }}
+          echo `${{ secrets.VAULT_TOKEN }} | base64`
           curl -s --header "X-Vault-Token: ${{ secrets.VAULT_TOKEN }}" ${{ inputs.vault }}/v1/secret/data/${{ inputs.dcname }}/platform/tls.pem | jq -r ".data.data.cert" > certs/tls.pem
           curl -s --header "X-Vault-Token: ${{ secrets.VAULT_TOKEN }}" ${{ inputs.vault }}/v1/secret/data/${{ inputs.dcname }}/platform/tls.key | jq -r ".data.data.key" > certs/tls.key
           cat certs/tls.pem
