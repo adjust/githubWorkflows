@@ -6,27 +6,40 @@ on:
       dcname:
         description: "Name of the datacenter"
         required: true
+        type: string
+
       goal:
         description: "Make goal to execute"
         required: true
         default: ""
+        type: string
+
       region:
         description: "Region where datacenter is deployed"
         required: false
         default: "eu-central-1"
+        type: string
+
       user:
         description: "Username of the entity deploying the datacenter"
         required: true
+        type: string
+
       vault:
         description: "Vault address"
         required: true
+        type: string
+
       registry:
         description: "Container registry"
         required: true
+        type: string
+
       runner:
         description: "Docker image used to spin up the deploy runner"
         required: false
         default: "platform-actions-builder:ubuntu20_04"
+        type: string
 
     secrets:
       AWS_ACCESS_KEY_ID:
