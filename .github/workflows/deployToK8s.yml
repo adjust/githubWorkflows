@@ -1,0 +1,106 @@
+name: Deploying app to kubernetes cluster
+
+on:
+  workflow_call:
+    inputs:
+      image_url:
+        description: "Image url repository/image:tag"
+        required: true
+        type: string
+      migrate_job:
+        description: "Migrate job name"
+        default: "null"
+        type: string
+      deployments:
+        description: "Space separated string if multiple deployments are part of this application"
+        default: ""
+        required: true
+        type: string
+      region:
+        description: "Region to deploy the application to"
+        default: "eu-central-1"
+        type: string
+        required: true
+      cluster:
+        description: "Cluster to deploy the application to"
+        default: ""
+        required: true
+        type: string
+      namespace:
+        description: "Namespace to which app will be deployed to or the workspace name"
+        default: ""
+        required: true
+        type: string
+      url:
+        description: "Application url"
+        required: true
+        type: string
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      TEAM_GITHUB_TOKEN:
+        required: true
+
+jobs:
+  run:
+    name: Deploying application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v2.0
+
+      - name: Generate a kubeconfig for Amazon EKS
+        run: |
+          aws eks --region eu-central-1 update-kubeconfig --name ${{ inputs.cluster }}
+
+      - name: Start deployment
+        uses: bobheadxi/deployments@v0.6.0
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
+          env: ${{ inputs.namespace }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Run migrations
+        if: ${{ inputs.migrate_job != 'null' }}
+        run: |
+          kubectl -n ${{ inputs.namespace }} get job ${{ inputs.migrate_job }} -o json |
+            jq 'del(.spec.selector)' |
+            jq 'del(.spec.template.metadata.labels."controller-uid")' |
+            jq 'del(.metadata.labels."controller-uid")' |
+            jq 'del(.status)' |
+            jq ".spec.template.spec.containers[].image = \"${{ inputs.image_url }}\"" > job.json
+          kubectl -n ${{ inputs.namespace }} delete jobs accounts-db-migrate
+          kubectl -n ${{ inputs.namespace }} apply -f job.json
+          kubectl -n ${{ inputs.namespace }} wait --for=condition=complete --timeout=60s jobs/${{ inputs.migrate_job }}
+
+      - name: Run rolling updates
+        run: |
+          for deployment in ${{ inputs.deployments }}
+          do
+            kubectl -n ${{ inputs.namespace }} set image deployment/$deployment $deployment=${{ inputs.image_url }}
+            kubectl -n ${{ inputs.namespace }} rollout status deployment/$deployment
+          done
+
+      - name: Update the deployment status
+        uses: bobheadxi/deployments@v0.6.0
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
+          env: ${{ inputs.namespace }}
+          env_url: ${{ inputs.url }}
+          status: ${{ job.status }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
