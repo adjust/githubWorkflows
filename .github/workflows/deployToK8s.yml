@@ -82,7 +82,7 @@ jobs:
             jq 'del(.metadata.labels."controller-uid")' |
             jq 'del(.status)' |
             jq ".spec.template.spec.containers[].image = \"${{ inputs.image_url }}\"" > job.json
-          kubectl -n ${{ inputs.namespace }} delete jobs accounts-db-migrate
+          kubectl -n ${{ inputs.namespace }} delete jobs ${{ inputs.migrate_job }}
           kubectl -n ${{ inputs.namespace }} apply -f job.json
           kubectl -n ${{ inputs.namespace }} wait --for=condition=complete --timeout=60s jobs/${{ inputs.migrate_job }}
 
