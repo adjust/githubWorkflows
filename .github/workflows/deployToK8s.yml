@@ -20,7 +20,6 @@ on:
         description: "Region to deploy the application to"
         default: "eu-central-1"
         type: string
-        required: true
       cluster:
         description: "Cluster to deploy the application to"
         default: ""
