@@ -12,9 +12,9 @@ on:
       repository:
         required: true
         type: string
-      # build_args:
-      #   default: ""
-      #   type: string
+      build_args:
+        default: ""
+        type: string
       region:
         required: true
         type: string
@@ -29,7 +29,7 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      build_args:
+      TEAM_GITHUB_TOKEN:
         
 jobs:
   buildScanPush:
@@ -79,7 +79,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: ${{ secrets.build_args }}
+          build-args: ${{ inputs.build_args }}
 
       - id: get-first-tag
         name: Get tag for scan
@@ -104,4 +104,4 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: ${{ secrets.build_args }}
+          build-args: ${{ format('GITHUB_TOKEN={0} {1}',secrets.TEAM_GITHUB_TOKEN, inputs.build_args }}
