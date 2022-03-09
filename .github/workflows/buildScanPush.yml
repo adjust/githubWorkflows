@@ -29,7 +29,6 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      TEAM_GITHUB_TOKEN:
         
 jobs:
   buildScanPush:
