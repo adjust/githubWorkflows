@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       tags:
-        description: "image tags, in case of multiple tags use string demlimited by \n eg: test1\ntest2"
+        description: "Image tags, in case of multiple tags use string demlimited by \n eg: test1\ntest2"
         default: ""
         type: string
       registry:
@@ -15,6 +15,7 @@ on:
         required: true
         type: string
       build_args:
+        description: "Build args, in case of multiple tags use string demlimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         default: ""
         type: string
       region:
@@ -24,6 +25,7 @@ on:
         default: "."
         type: string
       exit_on_scan_fail:
+        description: "Flag to abort push to registry if security scan has CRITICAL flaws"
         default: 0
         type: string
     secrets:
@@ -68,7 +70,6 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          # list of Docker images to use as base name for tags
           images: |
             ${{ inputs.registry }}/${{ inputs.image_name}}
           # Generate tags
