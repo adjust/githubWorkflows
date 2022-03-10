@@ -107,4 +107,4 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: ${{ format('GITHUB_TOKEN={0} {1}',secrets.TEAM_GITHUB_TOKEN, inputs.build_args )}}
+          build-args: "GITHUB_TOKEN=${{ secrets.TEAM_GITHUB_TOKEN }}\n${{ inputs.build_args }}"
