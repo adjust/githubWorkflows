@@ -82,7 +82,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: ${{ format(GITHUB_TOKEN={0}{1}{2},secrets.TEAM_GITHUB_TOKEN,'\n',inputs.build_args) }}
+          build-args: ${{ format('GITHUB_TOKEN={0}{1}{2}',secrets.TEAM_GITHUB_TOKEN,'\n',inputs.build_args) }}
 
       - id: get-first-tag
         name: Get tag for scan
