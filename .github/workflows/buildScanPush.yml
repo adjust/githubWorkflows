@@ -21,6 +21,7 @@ on:
       region:
         required: true
         type: string
+        default: "eu-central-1"
       dockerfile_path:
         default: "."
         type: string
