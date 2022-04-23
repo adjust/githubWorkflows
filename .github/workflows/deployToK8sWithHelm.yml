@@ -52,16 +52,7 @@ jobs:
       - name: Generate a kubeconfig for Amazon EKS
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
-          echo 'KUBECONFIG_FILE<<EOF' >> $GITHUB_ENV
-          cat ~/.kube/config >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
 
       - name: 'Deploy'
-        uses: 'anup004/helm@master'
-        with:
-          release: ${{ inputs.release }}
-          track: canary
-          chart: ${{ inputs.chart }}
-          namespace: ${{ inputs.namespace }}
-          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
-          value-files: "${{ inputs.chart}}/values.yaml"
+        run: |
+        helm upgrade --install ${{ inputs.release }} --namespace ${{ inputs.namespace }} ${{ inputs.chart_path }}
