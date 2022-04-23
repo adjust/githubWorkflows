@@ -55,6 +55,7 @@ jobs:
           echo 'KUBECONFIG_FILE<<EOF' >> $GITHUB_ENV
           cat ~/.kube/config >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+          sudo pip3 install awscli
 
       - name: 'Deploy'
         uses: 'vimeda/helm@master'
