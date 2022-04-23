@@ -65,7 +65,4 @@ jobs:
           namespace: ${{ inputs.region }}
           chart: 'app'
           token: '${{ secrets.TEAM_GITHUB_TOKEN }}'
-          value-files: >-
-          [
-            "values.yaml"
-          ]
+          value-files: "values.yaml"
