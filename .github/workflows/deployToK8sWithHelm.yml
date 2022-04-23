@@ -25,7 +25,10 @@ on:
         default: ""
         required: true
         type: string
-
+      values:
+        description: "Values key=value pairs separated by space"
+        default: ""
+        type: string
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -56,7 +59,7 @@ jobs:
       - name: "Lint charts"
         run: |
           helm lint ${{ inputs.chart }} --strict
-          
+
       - name: 'Deploy'
         run: |
           helm upgrade --install ${{ inputs.release }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }}
