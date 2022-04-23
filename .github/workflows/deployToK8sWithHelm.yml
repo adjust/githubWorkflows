@@ -1,0 +1,66 @@
+name: Deploying helm chart
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: "Release name"
+        type: string
+        required: true
+      region:
+        description: "Region to deploy the application to"
+        default: "eu-central-1"
+        type: string
+      cluster:
+        description: "Cluster to deploy the application to"
+        default: ""
+        required: true
+        type: string
+      namespace:
+        description: "Namespace to which app will be deployed to or the workspace name"
+        default: ""
+        required: true
+        type: string
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      TEAM_GITHUB_TOKEN:
+        required: true
+
+jobs:
+  run:
+    name: Deploying application
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region }}
+
+      - uses: azure/setup-helm@v1
+        id: install
+        
+      - name: Generate a kubeconfig for Amazon EKS
+        run: |
+          aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
+
+      - name: 'Deploy'
+        uses: 'deliverybot/helm@v1'
+        with:
+          release: ${{ inputs.release }}
+          track: canary
+          namespace: ${{ inputs.region }}
+          chart: 'app'
+          token: '${{ secrets.TEAM_GITHUB_TOKEN }}'
+          value-files: >-
+          [
+            "values.yaml"
+          ]
