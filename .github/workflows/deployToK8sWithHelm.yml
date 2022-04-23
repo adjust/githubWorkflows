@@ -56,10 +56,16 @@ jobs:
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
+      - name: Generate values
+        id: values
+        run: | 
+          values="$(echo ${{ inpute.values }} | sed -r 's/ / --set /g'
+          echo "::set-output name=values::$VALUES"
+
       - name: "Lint charts"
         run: |
           helm lint ${{ inputs.chart }} --strict
 
       - name: 'Deploy'
         run: |
-          helm upgrade --install ${{ inputs.release }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }}
+          helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }}
