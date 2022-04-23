@@ -55,4 +55,4 @@ jobs:
 
       - name: 'Deploy'
         run: |
-        helm upgrade --install ${{ inputs.release }} --namespace ${{ inputs.namespace }} ${{ inputs.chart_path }}
+          helm upgrade --install ${{ inputs.release }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }}
