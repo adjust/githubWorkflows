@@ -57,7 +57,7 @@ jobs:
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
       - name: 'Deploy'
-        uses: 'deliverybot/helm@master'
+        uses: 'vimedia/helm@master'
         with:
           release: ${{ inputs.release }}
           track: canary
