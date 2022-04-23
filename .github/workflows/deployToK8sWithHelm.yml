@@ -59,7 +59,7 @@ jobs:
       - name: Generate values
         id: values
         run: | 
-          values="$(echo ${{ inpute.values }} | sed -r 's/ / --set /g'
+          values="$(echo ${{ inputs.values }} | sed -r 's/ / --set /g'
           echo "::set-output name=values::$VALUES"
 
       - name: "Lint charts"
