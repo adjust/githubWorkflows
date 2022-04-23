@@ -63,5 +63,5 @@ jobs:
           track: canary
           chart: ${{ inputs.chart_path }}
           namespace: ${{ inputs.region }}
-          token: '${{ secrets.TEAM_GITHUB_TOKEN }}'
+          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
           value-files: "values.yaml"
