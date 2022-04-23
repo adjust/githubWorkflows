@@ -59,12 +59,15 @@ jobs:
           cat ~/.kube/config >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           
+      - name: Install aws cli
+        uses: chrislennon/action-aws-cli@v1.1
+
       - name: 'Deploy'
         uses: 'vimeda/helm@master'
         with:
           release: ${{ inputs.release }}
           track: canary
           chart: ${{ inputs.chart }}
-          namespace: ${{ inputs.region }}
+          namespace: ${{ inputs.namespace }}
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
           value-files: "${{ inputs.chart}}/values.yaml"
