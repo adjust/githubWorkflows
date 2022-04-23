@@ -53,6 +53,10 @@ jobs:
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
+      - name: "Lint charts"
+        run: |
+          helm lint ${{ inputs.chart }} --strict
+          
       - name: 'Deploy'
         run: |
           helm upgrade --install ${{ inputs.release }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }}
