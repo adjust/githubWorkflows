@@ -48,9 +48,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.region }}
-
-      - uses: azure/setup-helm@v1
-        id: install
         
       - name: Generate a kubeconfig for Amazon EKS
         run: |
@@ -58,9 +55,6 @@ jobs:
           echo 'KUBECONFIG_FILE<<EOF' >> $GITHUB_ENV
           cat ~/.kube/config >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
-          
-      - name: Install aws cli
-        uses: chrislennon/action-aws-cli@v1.1
 
       - name: 'Deploy'
         uses: 'vimeda/helm@master'
