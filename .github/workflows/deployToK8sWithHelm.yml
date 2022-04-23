@@ -55,7 +55,10 @@ jobs:
       - name: Generate a kubeconfig for Amazon EKS
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
-          echo "KUBECONFIG_FILE=$(cat ~/.kube/config)" >> $GITHUB_ENV
+          echo 'KUBECONFIG_FILE<<EOF' >> $GITHUB_ENV
+          cat ~/.kube/config >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          
       - name: 'Deploy'
         uses: 'vimeda/helm@master'
         with:
