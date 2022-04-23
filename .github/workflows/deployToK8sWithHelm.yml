@@ -64,4 +64,4 @@ jobs:
           chart: ${{ inputs.chart }}
           namespace: ${{ inputs.region }}
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
-          value-files: "values.yaml"
+          value-files: "${{ inputs.chart}}/values.yaml"
