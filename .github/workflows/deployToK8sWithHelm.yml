@@ -11,7 +11,7 @@ on:
         description: "Region to deploy the application to"
         default: "eu-central-1"
         type: string
-      chart_path:
+      chart:
         description: "Path to the chart"
         type: string
         required: true
@@ -61,7 +61,7 @@ jobs:
         with:
           release: ${{ inputs.release }}
           track: canary
-          chart: ${{ inputs.chart_path }}
+          chart: ${{ inputs.chart }}
           namespace: ${{ inputs.region }}
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
           value-files: "values.yaml"
