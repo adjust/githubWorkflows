@@ -29,6 +29,10 @@ on:
         description: "Values key=value pairs separated by space"
         default: ""
         type: string
+      ref:
+        description: "Branch to deploy manifests from"
+        default: ${{ github.ref_name }}
+        type: string
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -48,6 +52,7 @@ jobs:
           repository: adjust/${{ inputs.release }}
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
           submodules: recursive
+          ref: ${{ inputs.ref }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
