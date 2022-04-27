@@ -33,6 +33,12 @@ on:
         description: "Branch to deploy manifests from"
         default: ${{ github.ref_name }}
         type: string
+      
+      create_namespace:
+        description: "Create namespace if not exists"
+        default: true
+        type: string
+
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -77,4 +83,4 @@ jobs:
 
       - name: 'Deploy'
         run: |
-          helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }}
+          helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
