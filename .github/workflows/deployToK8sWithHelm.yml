@@ -100,6 +100,6 @@ jobs:
       - name: 'Deploy chart from remote aws ecr'
         if: inputs.remote == 'true' && inputs.aws_ecr != ''
         run: |
-          aws ecr get-login-password --region ${{ inputs.region }} | helm registry login --username AWS --password-stdin ${{ inputs.repository }}
+          aws ecr get-login-password --region ${{ inputs.region }} | helm registry login --username AWS --password-stdin ${{ inputs.aws_ecr }}
           helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} oci://${{ inputs.repository }}/${{ inputs.release }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
 
