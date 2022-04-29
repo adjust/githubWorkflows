@@ -82,9 +82,10 @@ jobs:
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
       - name: Generate values
+        if: inputs.values != ''
         id: values
         run: | 
-          values="$(echo ${{ inputs.values }} | sed -r 's/ / --set /g')"
+          values="--set $(echo ${{ inputs.values }} | sed -r 's/ / --set /g')"
           echo "::set-output name=VALUES::$values"
 
       - name: "Lint charts"
@@ -95,11 +96,11 @@ jobs:
       - name: 'Deploy from local repo'
         if: inputs.remote == 'false'
         run: |
-          helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
+          helm upgrade --install ${{ inputs.release }} ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
 
       - name: 'Deploy chart from remote aws ecr'
         if: inputs.remote == 'true' && inputs.aws_ecr != ''
         run: |
           aws ecr get-login-password --region ${{ inputs.region }} | helm registry login --username AWS --password-stdin ${{ inputs.aws_ecr }}
-          helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} oci://${{ inputs.aws_ecr }}/${{ inputs.release }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
+          helm upgrade --install ${{ inputs.release }} ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} oci://${{ inputs.aws_ecr }}/${{ inputs.release }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
 
