@@ -7,6 +7,11 @@ on:
         description: "Release name"
         type: string
         required: true
+      aws_ecr:
+        description: "Repository where charts reside"
+        default: ""
+        type: string
+        required: false
       region:
         description: "Region to deploy the application to"
         default: "eu-central-1"
@@ -14,7 +19,8 @@ on:
       chart:
         description: "Path to the chart"
         type: string
-        required: true
+        required: false
+        default: "./helm/${{ inputs.release }}"
       cluster:
         description: "Cluster to deploy the application to"
         default: ""
@@ -33,10 +39,13 @@ on:
         description: "Branch to deploy manifests from"
         default: ${{ github.ref_name }}
         type: string
-      
+      remote:
+        description: "True is the chart is pre-packaged and is pulled from a remote repo"
+        default: false
+        type: string
       create_namespace:
         description: "Create namespace if not exists"
-        default: true
+        default: false
         type: string
 
     secrets:
@@ -54,6 +63,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        if: inputs.remote == 'false'
         with:          
           repository: adjust/${{ inputs.release }}
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
@@ -81,6 +91,14 @@ jobs:
         run: |
           helm lint ${{ inputs.chart }} --strict
 
-      - name: 'Deploy'
+      - name: 'Deploy from local repo'
+        if: inputs.remote == 'false'
         run: |
           helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} ${{ inputs.chart }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
+
+      - name: 'Deploy chart from remote aws ecr'
+        if: inputs.remote == 'true' && inputs.aws_ecr != ""
+        run: |
+          aws ecr get-login-password --region ${{ inputs.region }} | helm registry login --username AWS --password-stdin ${{ inputs.repository }}
+          helm upgrade --install ${{ inputs.release }} --set ${{ steps.values.outputs.VALUES }} --namespace ${{ inputs.namespace }} oci://${{ inputs.repository }}/${{ inputs.release }} ${{ (inputs.create_namespace == 'true' && '--create-namespace') || '' }}
+
