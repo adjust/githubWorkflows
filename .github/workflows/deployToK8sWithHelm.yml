@@ -88,6 +88,7 @@ jobs:
           echo "::set-output name=VALUES::$values"
 
       - name: "Lint charts"
+        if: inputs.remote == 'false'
         run: |
           helm lint ${{ inputs.chart }} --strict
 
