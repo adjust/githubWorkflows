@@ -48,10 +48,10 @@ jobs:
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
-      - name: 'Deploy chart from remote aws ecr'
+      - name: 'Uninstall ${{ inputs.release }}'
         run: |
           helm uninstall ${{ inputs.release }} --namespace ${{ inputs.namespace }}
           if ${{ inputs.destroy_namespace}};then
-            kubectl delete namespace
+            kubectl delete namespace ${{ inputs.namespace }}
           fi
 
