@@ -51,7 +51,8 @@ jobs:
       - name: 'Uninstall ${{ inputs.release }}'
         run: |
           helm uninstall ${{ inputs.release }} --namespace ${{ inputs.namespace }}
-          if ${{ inputs.destroy_namespace}};then
+          kubectl get namespace ${{ inputs.namespace }}
+          if ${{ inputs.destroy_namespace }} && kubectl get namespace ${{ inputs.namespace }};then
             kubectl delete namespace ${{ inputs.namespace }}
           fi
 
