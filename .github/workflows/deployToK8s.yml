@@ -57,7 +57,7 @@ jobs:
           aws-region: ${{ inputs.region }}
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v2.0
+        uses: azure/setup-kubectl@v2.1
 
       - name: Generate a kubeconfig for Amazon EKS
         run: |
