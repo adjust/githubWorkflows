@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        releases: ${{fromJson(inputs.releases)}}
+        releases: "${{fromJson(inputs.releases)}}"
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -51,7 +51,7 @@ jobs:
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
-      - name: 'Uninstall ${{ matrix.releases }}'
+      - name: '${{ matrix.releases }}'
         run: |
           helm uninstall ${{ matrix.releases }} --namespace ${{ inputs.namespace }}
           kubectl get namespace ${{ inputs.namespace }}
