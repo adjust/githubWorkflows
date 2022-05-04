@@ -56,9 +56,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.region }}
 
-      # - name: Install kubectl
-      #   uses: azure/setup-kubectl@v2.1
-
       - name: Generate a kubeconfig for Amazon EKS
         run: |
           aws eks --region eu-central-1 update-kubeconfig --name ${{ inputs.cluster }}
