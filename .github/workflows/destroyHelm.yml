@@ -36,10 +36,13 @@ jobs:
   run:
     name: Destroying application
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        releases: "${{fromJson(inputs.releases)}}"
+    # strategy:
+    #   matrix:
+    #     releases: "${{fromJson(inputs.releases)}}"
     steps:
+      - name: test
+        run: |
+          echo ${{ inputs.releases }}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
