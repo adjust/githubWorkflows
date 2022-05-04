@@ -62,7 +62,6 @@ jobs:
 
       - name: Generate a kubeconfig for Amazon EKS
         run: |
-          kubectl version
           aws eks --region eu-central-1 update-kubeconfig --name ${{ inputs.cluster }}
 
       - name: Start deployment
