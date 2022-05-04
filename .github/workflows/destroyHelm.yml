@@ -3,7 +3,7 @@ name: Uninstall application
 on:
   workflow_call:
     inputs:
-      release:
+      releases:
         description: "Release name"
         type: string
         required: true
@@ -36,6 +36,9 @@ jobs:
   run:
     name: Destroying application
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        releases: ${{fromJson(inputs.releases)}}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -48,11 +51,14 @@ jobs:
         run: |
           aws eks --region ${{ inputs.region }} update-kubeconfig --name ${{ inputs.cluster }}
 
-      - name: 'Uninstall ${{ inputs.release }}'
+      - name: 'Uninstall ${{ matrix.releases }}'
         run: |
-          helm uninstall ${{ inputs.release }} --namespace ${{ inputs.namespace }}
+          helm uninstall ${{ matrix.releases }} --namespace ${{ inputs.namespace }}
           kubectl get namespace ${{ inputs.namespace }}
-          if ${{ inputs.destroy_namespace }} && kubectl get namespace ${{ inputs.namespace }};then
+      - name: Remove namespace
+        if: inputs.destroy_namespace
+        run: |
+          if kubectl get namespace ${{ inputs.namespace }};then
             kubectl delete namespace ${{ inputs.namespace }}
           fi
 
