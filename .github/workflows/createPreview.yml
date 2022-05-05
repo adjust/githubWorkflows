@@ -1,0 +1,77 @@
+name: Create Preview environment
+
+on:
+  workflow_call:
+    inputs:
+      apps:
+        description: "Apps to deploy"
+        required: true
+        type: string
+      cluster:
+        description: "Cluster to deploy the application to"
+        default: ""
+        required: true
+        type: string
+      namespace:
+        description: "Namespace to which app will be deployed to or the workspace name"
+        default: ""
+        required: true
+        type: string
+      branch:
+        description: "Branch to be used for deploy"
+        default: ""
+        required: true
+        type: string
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      TEAM_GITHUB_TOKEN:
+        required: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app_name: ${{fromJson(inputs.apps)}}
+  steps:
+    - name: vars
+      id: vars
+      run: |
+        set -x
+        echo "::set-output app_name=app::${{ matrix.app_name }}"
+
+    - name: Find tags
+      id: tags
+      run: |
+        set -x
+        IMAGE_META = $( aws ecr describe-images --repository-name=${{ matrix.app_name }} --image-ids=imageTag=${{input.branch}}-latest 2> /dev/null )
+
+        if [[ IMAGE_META ]];then
+          tag="$( jq '.imageDetails[0].imageTags[0]' -r < ${{IMAGE_META}})"
+          ref=${{ input.branch }}
+        else
+          tag="staging-latest"
+          ref="staging"
+        fi
+
+        echo "::set-output name=tag::${{tag}}"
+        echo "::set-output name=ref::${{ref}}"
+
+    - deploy:
+        name: Deploy App
+        uses: adjust/githubWorkflows/.github/workflows/deployToK8sWithHelm.yml@main
+        with:
+          release: ${{ steps.vars.app_name }}
+          cluster: ${{ inputs.cluster }}
+          namespace: ${{ inputs.namespace }}
+          chart: "./helm/${{ steps.vars.app_name }}"
+          values: "image.tag=${{ steps.tags.outputs.tag }}"
+          ref: ${{ steps.tags.outputs.ref }}
+
+        secrets:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TEAM_GITHUB_TOKEN: ${{ secrets.TEAM_GITHUB_TOKEN }}
