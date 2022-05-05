@@ -36,9 +36,9 @@ jobs:
   run:
     name: Destroying application
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     releases: "${{fromJson(inputs.releases)}}"
+    strategy:
+      matrix:
+        releases: "${{fromJson(inputs.releases)}}"
     steps:
       - name: test
         run: |
