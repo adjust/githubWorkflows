@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        releases: "${{fromJson(env.release)}}"
+        releases: "${{fromJson(${{env.release}})}}"
     steps:
       - name: test
         run: |
