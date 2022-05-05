@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        releases: "${{inputs.releases}}"
+        releases: "${{toJSON(inputs.releases)}}"
     steps:
 
       - name: test
