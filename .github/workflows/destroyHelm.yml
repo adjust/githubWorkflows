@@ -36,11 +36,9 @@ jobs:
   run:
     name: Destroying application
     runs-on: ubuntu-latest
-    env:
-      release: '["mfe-shell1","mfe-layout1","dashboard-ptl1","dashboard-experience1","dashboard-credentials1","translations1","control-center1"]'
     strategy:
       matrix:
-        releases: "${{fromJson($release)}}"
+        releases: "${{inputs.releases}}"
     steps:
 
       - name: test
