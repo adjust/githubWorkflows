@@ -31,16 +31,18 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-env:
-  release: '["mfe-shell1","mfe-layout1","dashboard-ptl1","dashboard-experience1","dashboard-credentials1","translations1","control-center1"]'
+
 jobs:
   run:
     name: Destroying application
     runs-on: ubuntu-latest
+    env:
+      release: '["mfe-shell1","mfe-layout1","dashboard-ptl1","dashboard-experience1","dashboard-credentials1","translations1","control-center1"]'
     strategy:
       matrix:
-        releases: "${{fromJson(${{env.release}})}}"
+        releases: "${{fromJson($release)}}"
     steps:
+
       - name: test
         run: |
           echo ${{ inputs.releases }}
