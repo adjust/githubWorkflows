@@ -1,0 +1,34 @@
+name: getEcrRegistry
+
+on:
+  workflow_call:
+    inputs:
+      region:
+        required: false
+        type: string
+        default: "eu-central-1"
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+    outputs:
+      ecrRegistry: ${{ steps.step1.outputs.ecr_registry }}
+
+jobs:
+  ecrLogin:
+    name: Login To ECR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        id: awsCredentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          mask-aws-account-id: false
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Set ECR Registry
+        id: ecrRegistry
+        run: echo "::set-output name=ecr_registry::${{ steps.awsCredentials.outputs.aws-account-id}}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
