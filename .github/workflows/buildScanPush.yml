@@ -78,7 +78,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "GITHUB_TOKEN=${{ secrets.TEAM_GITHUB_TOKEN }}\n${{ inputs.build_args }}"
+          build-args: "{{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -98,6 +98,13 @@ jobs:
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
+
+      - name: Loging to container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.CONTAINER_REGISTRY_USER }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
       - name: Build and push
         uses: docker/build-push-action@v2
