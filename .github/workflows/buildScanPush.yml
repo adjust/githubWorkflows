@@ -66,6 +66,9 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
             type=raw,${{ inputs.tags }}
+            type=ref,event=pr,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
+            type=ref,event=branch,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
+            type=ref,event=tag
 
       - name: Build locally before tests and scan
         uses: docker/build-push-action@v2
