@@ -44,9 +44,8 @@ jobs:
         id: sshKey
         run: echo '::set-output name=sshKey::${{secrets.SSH_KEY}}'
 
-
       - name: Setup SSH Auth Sock
-        uses: webfactory/ssh-agent@v0.5.3
+        uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ steps.sshKey.outputs.sshKey }}
 
