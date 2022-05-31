@@ -76,6 +76,8 @@ jobs:
       - name: Build locally before tests and scan
         uses: docker/build-push-action@v2
         with:
+          ssh: |
+            "default=${{ env.SSH_AUTH_SOCK || '' }}"
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
