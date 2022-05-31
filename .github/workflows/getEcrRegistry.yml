@@ -13,12 +13,16 @@ on:
       AWS_SECRET_ACCESS_KEY:
         required: true
     outputs:
-      ecrRegistry: ${{ steps.step1.outputs.ecr_registry }}
+      ecrRegistry:
+        description: "ECR Registry for AWS credentials."
+        value: ${{ jobs.ecrLogin.outputs.ecrRegistry }}
 
 jobs:
   ecrLogin:
     name: Login To ECR
     runs-on: ubuntu-latest
+    outputs:
+      ecrRegistry: ${{ steps.ecrRegistry.outputs.ecr_registry }}
     steps:
       - name: Configure AWS credentials
         id: awsCredentials
