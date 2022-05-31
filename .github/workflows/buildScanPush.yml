@@ -54,7 +54,7 @@ jobs:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.ref_name }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ github.ref_name }}
+            ${{ runner.os }}-buildx-
 
       - name: Extract docker metadata
         id: meta
