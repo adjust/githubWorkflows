@@ -40,15 +40,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: get SSH key
-        id: sshKey
-        run: echo '::set-output name=sshKey::${{secrets.SSH_KEY}}'
-
       - name: Setup SSH Auth Sock
         uses: webfactory/ssh-agent@v0.5.4
-        if: ${{steps.sshKey.output.sshKey != ''}}
         with:
-          ssh-private-key: ${{ steps.sshKey.outputs.sshKey }}
+          ssh-private-key: ${{ secrets.SSH_KEY }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
