@@ -32,6 +32,7 @@ on:
         required: true
       SSH_KEY:
         required: false
+        default: ''
         
 jobs:
   buildScanPush:
@@ -42,7 +43,7 @@ jobs:
 
       - name: Setup SSH Auth Sock
         uses: webfactory/ssh-agent@v0.5.3
-        if: ${{ secrets.SSH_KEY != '' }}
+        if: secrets.SSH_KEY != '' 
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
@@ -99,7 +100,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           ssh: |
-            "default=${{ env.SSH_AUTH_SOCK || "" }}"
+            "default=${{ env.SSH_AUTH_SOCK || '' }}"
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
