@@ -32,7 +32,6 @@ on:
         required: true
       SSH_KEY:
         required: false
-        default: ''
         
 jobs:
   buildScanPush:
