@@ -41,8 +41,8 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: get SSH key
-        id : sshKey
-        run: echo '::set-output name=secret::${{secrets.SSH_KEY}}'
+        id: sshKey
+        run: echo '::set-output name=sshKey::${{secrets.SSH_KEY}}'
 
 
       - name: Setup SSH Auth Sock
