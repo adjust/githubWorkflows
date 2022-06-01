@@ -42,6 +42,7 @@ jobs:
 
       - name: Setup SSH Auth Sock
         uses: webfactory/ssh-agent@v0.5.4
+        if: ${{ secrets.SSH_KEY }}
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
