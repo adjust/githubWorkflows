@@ -76,11 +76,24 @@ jobs:
             type=ref,event=branch,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
             type=ref,event=tag
 
-      - name: Build locally before tests and scan
+      - name: Build locally before tests and scan (with ssh)
         uses: docker/build-push-action@v2
+        if: ${{ env.SSH_AUTH_SOCK }}
         with:
           ssh: |
             "default=${{ env.SSH_AUTH_SOCK || '' }}"
+          context: ${{ inputs.dockerfile_path }}
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "{{ inputs.build_args }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        env:
+          SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK || '' }}
+
+      - name: Build locally before tests and scan
+        uses: docker/build-push-action@v2
+        with:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
