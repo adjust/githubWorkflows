@@ -19,7 +19,7 @@ on:
 
 jobs:
   ecrLogin:
-    name: Login To ECR
+    name: Login to AWS and get registry URL.
     runs-on: ubuntu-latest
     outputs:
       ecrRegistry: ${{ steps.ecrRegistry.outputs.ecr_registry }}
