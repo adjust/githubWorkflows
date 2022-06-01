@@ -87,6 +87,8 @@ jobs:
           build-args: "{{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
+        env:
+          SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK || '' }}
 
       - id: get-first-tag
         name: Get tag for scan
@@ -115,9 +117,11 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          ssh: |
-            "default=${{ env.SSH_AUTH_SOCK || '' }}"
+          ssh: default
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: "${{ inputs.build_args }}"
+
+        env:
+          SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK || '' }}
