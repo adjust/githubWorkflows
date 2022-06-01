@@ -40,9 +40,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+
+      - name: Get SSH oKey from secret
+        id: ssh_key
+        run: echo "::set-output name=ssh_key::${{ secrets.SSH_KEY }}"
+
       - name: Setup SSH Auth Sock
         uses: webfactory/ssh-agent@v0.5.4
-        if: ${{ secrets.SSH_KEY }}
+        if: ${{ steps.ssh_key.outputs.ssh_key }}
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
