@@ -40,8 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-
-      - name: Get SSH oKey from secret
+      - name: Get SSH Key from secret
         id: ssh_key
         run: echo "::set-output name=ssh_key::${{ secrets.SSH_KEY }}"
 
@@ -88,8 +87,6 @@ jobs:
           build-args: "{{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        env:
-          SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK || '' }}
 
       - name: Build locally before tests and scan
         uses: docker/build-push-action@v2
@@ -100,8 +97,6 @@ jobs:
           build-args: "{{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        env:
-          SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK || '' }}
 
       - id: get-first-tag
         name: Get tag for scan
@@ -127,6 +122,17 @@ jobs:
           username: ${{ secrets.CONTAINER_REGISTRY_USER }}
           password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
+      - name: Build and push (with ssh)
+        uses: docker/build-push-action@v2
+        if: ${{ env.SSH_AUTH_SOCK }}
+        with:
+          ssh: |
+            "default=${{ env.SSH_AUTH_SOCK || '' }}"
+          context: ${{ inputs.dockerfile_path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "${{ inputs.build_args }}"
+
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
@@ -135,6 +141,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: "${{ inputs.build_args }}"
-
-        env:
-          SSH_AUTH_SOCK: ${{ env.SSH_AUTH_SOCK || '' }}
