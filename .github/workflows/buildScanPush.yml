@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       tags:
-        description: "Image tags, in case of multiple tags use string demlimited by \n eg: test1\ntest2"
+        description: "Image tags, in case of multiple tags use string delimited by \n eg: test1\ntest2"
         default: ""
         type: string
       registry:
@@ -33,7 +33,7 @@ on:
       SSH_KEY:
         required: false
       SECRET_TAGS:
-        description: "Image tags, in case of multiple tags use string demlimited by \n eg: test1\ntest2"
+        description: "Image tags that comes from secrets, in case of multiple tags use string delimited by \n eg: test1\ntest2"
         required: false
         
 jobs:
