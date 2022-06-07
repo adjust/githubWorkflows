@@ -1,0 +1,28 @@
+name: Update charts with preview branch image version
+
+on:
+  workflow_call:
+    inputs:
+      ref_name:
+        required: true
+        type: string
+    outputs:
+      valid:
+        description: "Returns true if valid else false"
+        value: ${{ jobs.validate.outputs.validity }}
+jobs:        
+  validate:
+    name: Preview chart update
+    runs-on: ubuntu-latest
+    outputs:
+      validity: ${{ steps.validate.outputs.valid }}
+    steps:
+      - name: Validate branch name
+        id: validate
+        run: |
+          if [[ '${{ inputs.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
+            echo "::set-output name=valid::true"
+          else
+            echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
+            echo "::set-output name=valid::false"
+          fi
