@@ -56,6 +56,25 @@ So this repo needs strict audit and changes has to be strictly reviewed.**
 
 ## Workflows
 
+### getEcrRegistry
+
+This workflows exchanges an AWS credentials pair with region for an ECR Registry URL.
+
+| Inputs                  | Description                                              | Default            | Example                                            | Required |
+| ----------------------- | -------------------------------------------------------- | ------------------ | -------------------------------------------------- | -------- |
+| `region`                | Region of registry                                       | `eu-central-1`     | `eu-central-1`                                     | No       |
+
+| Secrets                 | Description                                              | Default            | Example                                            | Required |
+| ----------------------- | -------------------------------------------------------- | ------------------ | -------------------------------------------------- | -------- |
+| `AWS_ACCESS_KEY_ID`     | AWS credential for container registry                    |                    |                                                    | Yes      |
+| `AWS_SECRET_ACCESS_KEY` | AWS credential for container registry                    |                    |                                                    | Yes      |
+
+
+| Outputs                 | Description                                              | Example                                            |
+| ----------------------- | -------------------------------------------------------- | -------------------------------------------------- |
+| `ecrRegistry`     | URL for the ecr registry given region and AWS credentials |  123456789101.dkr.ecr.eu-central-1.amazonaws.com        |
+
+
 ### buildScanPush
 
 This workflow give features to
@@ -68,7 +87,7 @@ Scan can be configured to ignore if there are CRITICAL flaws. This is an example
 
 Expects following configs passed from the caller workflow:
 
-| Parameter               | Description                                              | Default            | Example                                            | Required |
+| Inputs                  | Description                                              | Default            | Example                                            | Required |
 | ----------------------- | -------------------------------------------------------- | ------------------ | -------------------------------------------------- | -------- |
 | `image_name`            | Image name                                               |                    |                                                    | yes      |
 | `tags`                  | Image tags, for multiple tags use string delimited by \n | `""`               | `test1\ntest2`                                     | No       |
@@ -77,9 +96,13 @@ Expects following configs passed from the caller workflow:
 | `region`                | Region of registry                                       | `eu-central-1`     | `eu-central-1`                                     | No       |
 | `dockerfile_path`       | Docker context where Dockerfiles are located             | `.`                | `./dockerfile_dir`                                 | No       |
 | `exit_on_scan_fail`     | Don't push if CRITICAL vulnerabilities are detected      | `0`                |                                                    | No       |
-| `AWS_ACCESS_KEY_ID`     | AWS credential for container registry                    |                    |                                                    | Yes      |
-| `AWS_SECRET_ACCESS_KEY` | AWS credential for container registry                    |                    |                                                    | Yes      |
-| `TEAM_GITHUB_TOKEN`     | GITHUB token for github access while builds              |                    |                                                    | No       |
+
+| Secrets                 | Description                                              | Default            | Example                                            | Required |
+| ----------------------- | -------------------------------------------------------- | ------------------ | -------------------------------------------------- | -------- |
+| `CONTAINER_REGISTRY_USER`     | Username for container registry                    |                    |                                                    | Yes      |
+| `CONTAINER_REGISTRY_PASSWORD` | Password for container registry                    |                    |                                                    | Yes      |
+| `SECRET_BUILD_ARGS`     | Build args for args with github secret variables, for multiple tags use string delimited by \n              |                    |                                                    | No       |
+| `SSH_KEY`     | SSH key to be used in case the build needs the buildx argument `--ssh` |                    |                                                    | No       |
 
 ### deployToK8s
 
@@ -119,3 +142,38 @@ Expects following configs passed from the caller workflow:
 | `AWS_SECRET_ACCESS_KEY` | AWS credential for container registry                     |                                        |                                                    | Yes      |
 | `TEAM_GITHUB_TOKEN`     | GITHUB token for github access while builds               |                                        |                                                    | Yes      |
 | `VAULT_TOKEN`           | Vault token to authenticate against vault                 |                                        |                                                    |          |
+
+## Migrating buildScanPush from v1 to v2
+
+In order to migrate the usage of buildScanPush to v2, follow these steps.
+
+Setup a new step as a dependency of buildScanPush using getEcrRegistry workflow passing region, AWS_SECRET_ACCESS_KEY and AWS_ACCESS_KEY_ID.
+
+In buildPushScan, remove the unused variables and pass the registry input as the dependency. The TEAM_GITHUB_TOKEN can be passed in SECRET_BUILD_ARGS.
+
+Example:
+
+```
+jobs:
+  set-ecr-registry:
+    uses: adjust/githubWorkflows/.github/workflows/getEcrRegistry.yml@v2
+    with:
+      region: 'eu-central-1'
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  docker-build-and-push:
+    uses: adjust/githubWorkflows/.github/workflows/buildScanPush.yml@v2
+    needs: [set-ecr-registry, set-image-variables]
+    with:
+      image_name: <project-name>
+      registry: ${{ needs.set-ecr-registry.outputs.ecrRegistry }}
+      build_args: |
+        "EXAMPLE=<EXAMPLE ARG>"
+      tags: "tag1\ntag2"
+    secrets:
+      CONTAINER_REGISTRY_USER: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      CONTAINER_REGISTRY_PASSWORD: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      SECRET_BUILD_ARGS: "TEAM_GITHUB_TOKEN=${ secrets.AUTOMATE_GITHUB_ACCESS_TOKEN }}"
+```
