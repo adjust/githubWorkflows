@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       tags:
-        description: "Image tags, in case of multiple tags use string demlimited by \n eg: test1\ntest2"
+        description: "Image tags, in case of multiple tags use string delimited by \n eg: test1\ntest2"
         default: ""
         type: string
       registry:
@@ -18,10 +18,6 @@ on:
         description: "Build args, in case of multiple tags use string demlimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         default: ""
         type: string
-      region:
-        required: false
-        type: string
-        default: "eu-central-1"
       dockerfile_path:
         default: "."
         type: string
@@ -30,11 +26,14 @@ on:
         default: 0
         type: string
     secrets:
-      AWS_ACCESS_KEY_ID:
+      CONTAINER_REGISTRY_USER:
         required: true
-      AWS_SECRET_ACCESS_KEY:
+      CONTAINER_REGISTRY_PASSWORD:
         required: true
-      TEAM_GITHUB_TOKEN:
+      SSH_KEY:
+        required: false
+      SECRET_BUILD_ARGS:
+        description: "Build args that should stay secret, in case of multiple tags use string demlimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         required: false
         
 jobs:
@@ -44,20 +43,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+
+      - name: Get SSH Key from secret
+        id: ssh_key
+        run: echo "::set-output name=ssh_key::${{ secrets.SSH_KEY }}"
+
+      - name: Setup SSH Auth Sock
+        uses: webfactory/ssh-agent@v0.5.4
+        if: ${{ steps.ssh_key.outputs.ssh_key }}
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          mask-aws-account-id: false
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Cache Docker layers
         uses: actions/cache@v2
@@ -65,7 +63,7 @@ jobs:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.ref_name }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ github.ref_name }}
+            ${{ runner.os }}-buildx-
 
       - name: Extract docker metadata
         id: meta
@@ -77,6 +75,22 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
             type=raw,${{ inputs.tags }}
+            type=ref,event=pr,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
+            type=ref,event=branch,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
+            type=ref,event=tag
+
+      - name: Build locally before tests and scan (with ssh)
+        uses: docker/build-push-action@v2
+        if: ${{ env.SSH_AUTH_SOCK }}
+        with:
+          ssh: |
+            "default=${{ env.SSH_AUTH_SOCK }}"
+          context: ${{ inputs.dockerfile_path }}
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build locally before tests and scan
         uses: docker/build-push-action@v2
@@ -84,7 +98,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "GITHUB_TOKEN=${{ secrets.TEAM_GITHUB_TOKEN }}\n${{ inputs.build_args }}"
+          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -105,10 +119,28 @@ jobs:
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
+      - name: Loging to container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.CONTAINER_REGISTRY_USER }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+
+      - name: Build and push (with ssh)
+        uses: docker/build-push-action@v2
+        if: ${{ env.SSH_AUTH_SOCK }}
+        with:
+          ssh: |
+            "default=${{ env.SSH_AUTH_SOCK }}"
+          context: ${{ inputs.dockerfile_path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "GITHUB_TOKEN=${{ secrets.TEAM_GITHUB_TOKEN }}\n${{ inputs.build_args }}"
+          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
