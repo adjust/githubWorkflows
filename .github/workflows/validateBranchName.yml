@@ -1,4 +1,4 @@
-name: Update charts with preview branch image version
+name: Validate branch name
 
 on:
   workflow_call:
@@ -12,7 +12,7 @@ on:
         value: ${{ jobs.validate.outputs.validity }}
 jobs:        
   validate:
-    name: Preview chart update
+    name: Validate
     runs-on: ubuntu-latest
     outputs:
       validity: ${{ steps.validate.outputs.valid }}
