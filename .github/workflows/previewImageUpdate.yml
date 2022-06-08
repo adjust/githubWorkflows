@@ -1,0 +1,42 @@
+name: Update charts with preview branch image version
+
+on:
+  workflow_call:
+    inputs:
+      ref_name:
+        required: true
+        type: string
+      app:
+        required: true
+        type: string
+      chart_repo:
+        required: true
+        type: string
+    secrets:
+      TEAM_GITHUB_TOKEN:
+        required: true
+jobs:        
+  update-preview-chart:
+    name: Preview chart update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get and update ${{ inputs.chart_repo }} umbrella helm chart for mfe
+        uses: actions/checkout@v3
+        with:
+          repository: adjust/${{ inputs.chart_repo }}
+          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
+          submodules: recursive
+          fetch-depth: 0
+          ref: master
+      - name: Update image and commit the changes to ${{ inputs.chart_repo }}
+        run: |
+          cd helm/mfe
+          git config --global user.name "Github preview creation bot"
+          git config --global user.email "<>"
+          git checkout ${{ inputs.ref_name }} 2>/dev/null || git checkout -b ${{ inputs.ref_name }}
+          if [[ $(yq '.${{ inputs.app }}.image.tag' values.yaml) != "${{ inputs.ref_name }}-latest" ]]; then
+            yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.ref_name }}-latest"' values.yaml
+            git add values.yaml
+            git commit -m "${{ inputs.app }}: Update images version in chart for commit ${{ github.sha }}" -a
+            git push origin ${{ inputs.ref_name }}
+          fi
