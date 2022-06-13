@@ -86,7 +86,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           build-args: "GITHUB_TOKEN=${{ secrets.TEAM_GITHUB_TOKEN }}\n${{ inputs.build_args }}"
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
 
       - id: get-first-tag
         name: Get tag for scan
