@@ -12,6 +12,10 @@ on:
       chart_repo:
         required: true
         type: string
+      image_tag:
+        type: string
+        required: true
+        description: New tag that has to be updated in the chart
     secrets:
       TEAM_GITHUB_TOKEN:
         required: true
@@ -34,8 +38,8 @@ jobs:
           git config --global user.name "Github preview creation bot"
           git config --global user.email "<>"
           git checkout ${{ inputs.ref_name }} 2>/dev/null || git checkout -b ${{ inputs.ref_name }}
-          if [[ $(yq '.${{ inputs.app }}.image.tag' values.yaml) != "${{ inputs.ref_name }}-latest" ]]; then
-            yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.ref_name }}-latest"' values.yaml
+          if [[ $(yq '.${{ inputs.app }}.image.tag' values.yaml) != "${{ inputs.image_tag }}" ]]; then
+            yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.image_tag }}"' values.yaml
             git add values.yaml
             git commit -m "${{ inputs.app }}: Update images version in chart for commit ${{ github.sha }}" -a
             git push origin ${{ inputs.ref_name }}
