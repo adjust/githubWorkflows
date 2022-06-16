@@ -37,10 +37,10 @@ jobs:
           cd helm/mfe
           git config --global user.name "Github preview creation bot"
           git config --global user.email "<>"
-          git checkout ${{ inputs.ref_name }} 2>/dev/null || git checkout -b ${{ inputs.ref_name }}
+          git checkout pr-${{ inputs.ref_name }} 2>/dev/null || git checkout -b pr-${{ inputs.ref_name }}
           if [[ $(yq '.${{ inputs.app }}.image.tag' values.yaml) != "${{ inputs.image_tag }}" ]]; then
             yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.image_tag }}"' values.yaml
             git add values.yaml
             git commit -m "${{ inputs.app }}: Update images version in chart for commit ${{ github.sha }}" -a
-            git push origin ${{ inputs.ref_name }}
+            git push origin pr-${{ inputs.ref_name }}
           fi
