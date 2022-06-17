@@ -1,0 +1,134 @@
+name: Build Container Image
+
+on:
+  workflow_call:
+    inputs:
+      imageName:
+        required: true
+        type: string
+      registry:
+        required: false
+        type: string
+        default: 330817282416.dkr.ecr.eu-central-1.amazonaws.com
+      region:
+        required: false
+        description: 'Region to deploy the application to'
+        default: 'eu-central-1'
+        type: string
+    secrets:
+      awsAccessKeyId:
+        required: true
+      awsSecretAccessKey:
+        required: true
+      githubToken:
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !github.ref_protected }}
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        id: validate
+        run: |
+          if [[ '${{ inputs.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
+            echo "::set-output name=valid::true"
+          else
+            echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
+            echo "::set-output name=valid::false"
+          fi
+
+  setup:
+    name: setup
+    needs: validate
+    runs-on: ubuntu-latest
+    if: needs.validate.outputs.valid == 'true'
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+      namespace: ${{ steps.tag.outputs.namespace }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: tag
+        id: tag
+        run: |
+          tag=${{ github.ref_name }}-$(git rev-parse --short HEAD)
+          namespace=$(echo ${{ github.ref_name }} | tr '[:upper:]' '[:lower:]')
+          echo "::set-output name=image_tag::${tag}"
+          echo "::set-output name=namespace::${namespace}"
+
+  buildScanPush:
+    name: Build scan and push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          mask-aws-account-id: false
+          aws-access-key-id: ${{ secrets.awsAccessKeyId }}
+          aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
+          aws-region: ${{ inputs.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.ref_name }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ github.ref_name }}
+      - name: Extract docker metadata
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: |
+            ${{ inputs.registry }}/${{ inputs.imageName}}
+          # Generate tags
+          tags: |
+            type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
+            type=raw,${{ needs.setup.outputs.image_tag }}\n${{ github.ref_name }}-latest
+      - name: Build locally before tests and scan
+        uses: docker/build-push-action@v2
+        with:
+          context: ${{ inputs.dockerfile_path }}
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "GITHUB_TOKEN=${{ secrets.githubToken }}\n${{ inputs.build_args }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - id: get-first-tag
+        name: Get tag for scan
+        run: |
+          first_tag=$(echo "${{steps.meta.outputs.tags}}" | cut -d$'\n' -f1)
+          echo "::set-output name=first_tag::$first_tag"
+      # Trivy vulnerability scan
+      - name: Run vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.get-first-tag.outputs.first_tag }}
+          format: 'table'
+          exit-code: ${{ inputs.exit_on_scan_fail }}
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: ${{ inputs.dockerfile_path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "GITHUB_TOKEN=${{ secrets.githubToken }}\n${{ inputs.build_args }}"
