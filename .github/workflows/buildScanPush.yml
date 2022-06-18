@@ -120,7 +120,7 @@ jobs:
           severity: "CRITICAL,HIGH"
 
       - name: Loging to container registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ${{ inputs.registry }}
           username: ${{ secrets.CONTAINER_REGISTRY_USER }}
