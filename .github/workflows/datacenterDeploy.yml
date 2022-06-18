@@ -57,10 +57,10 @@ jobs:
 
     steps:
       - name: Get datacenter repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Get cloudplatform repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: adjust/cloudplatform
           token: ${{ secrets.TEAM_GITHUB_TOKEN }}
