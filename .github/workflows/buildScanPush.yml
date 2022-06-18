@@ -80,7 +80,7 @@ jobs:
             type=ref,event=tag
 
       - name: Build locally before tests and scan (with ssh)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         if: ${{ env.SSH_AUTH_SOCK }}
         with:
           ssh: |
@@ -93,7 +93,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build locally before tests and scan
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ${{ inputs.dockerfile_path }}
           load: true
@@ -127,7 +127,7 @@ jobs:
           password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
       - name: Build and push (with ssh)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         if: ${{ env.SSH_AUTH_SOCK }}
         with:
           ssh: |
@@ -138,7 +138,7 @@ jobs:
           build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
 
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ${{ inputs.dockerfile_path }}
           push: true
