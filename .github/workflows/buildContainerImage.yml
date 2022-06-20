@@ -3,20 +3,17 @@ name: Build Container Image
 on:
   workflow_call:
     inputs:
-      ref_name:
-        required: true
-        type: string
       imageName:
         required: true
         type: string
-      tags:
+      refName:
         required: false
-        description: "Image tags, in case of multiple tags use string delimited by \n eg: test1\ntest2"
-        default: ""
         type: string
+        default: ${{ github.ref_name }}
       registry:
         description: "Container image registry, eg: 1234567789012.dkr.ecr.eu-central-1.amazonaws.com"
-        required: true
+        default: "330817282416.dkr.ecr.eu-central-1.amazonaws.com"
+        required: false
         type: string
       buildArgs:
         required: false
@@ -33,15 +30,13 @@ on:
         default: 0
         type: string
       app:
-        required: true
+        required: false
         type: string
+        default: ${{github.event.repository.name}}
       chartRepo:
-        required: true
+        required: false
         type: string
-      imageTag:
-        type: string
-        required: true
-        description: New tag that has to be updated in the chart
+        default:  "dashboard-k8s"
     secrets:
       containerRegistryUser:
         required: true
@@ -79,9 +74,6 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     if: needs.validate.outputs.valid == 'true'
-    outputs:
-      image_tag: ${{ steps.tag.outputs.image_tag }}
-      namespace: ${{ steps.tag.outputs.namespace }}
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -129,7 +121,7 @@ jobs:
           # Generate tags
           tags: |
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
-            type=raw,${{ inputs.tags }}
+            type=raw,${{ steps.tag.outputs.image_tag }}\n${{ github.ref_name }}-latest
             type=ref,event=pr,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
             type=ref,event=branch,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
             type=ref,event=tag
@@ -222,5 +214,5 @@ jobs:
             yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.imageTag }}"' values.yaml
             git add values.yaml
             git commit -m "${{ inputs.app }}: Update images version in chart for commit ${{ github.sha }}" -a
-            git push origin pr-${{ inputs.ref_name }}
+            git push origin pr-${{ inputs.refName }}
           fi

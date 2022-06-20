@@ -1,12 +1,21 @@
-name: Create Preview environment
+name: Create Preview
 
 on:
   workflow_call:
     inputs:
       ref_name:
-        required: true
+        required: false
         type: string
-jobs:        
+        default: "${{ github.base_ref }}"
+    secrets:
+      githubToken:
+        required: true
+jobs:
+  # PR is labelled "preview" only if branch name complies with standards
+  # contain at most 63 characters
+  # contain only lowercase alphanumeric characters or '-'
+  # start with an alphanumeric character
+  # end with an alphanumeric character
   validate:
     name: Validate
     runs-on: ubuntu-latest
@@ -30,11 +39,11 @@ jobs:
         with:
           configuration-path: .github/pr-labeler.yml
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.githubToken }}
       - name: Share preview link in PR comments
         uses: mshick/add-pr-comment@v1
         with:
           message: |
             'Check the deployed **micro-application** k8s preview at [preview](https://dash-${{ github.head_ref }}.qa.cloud.adjust.com/datascape/credentials/)!🚀'
             'Check the deployed **storybook** k8s preview at [storybook](https://dash-${{ github.head_ref }}.qa.cloud.adjust.com/datascape/storybook/)!🚀'
-          repo-token: ${{ secrets.AUTOMATE_GITHUB_ACCESS_TOKEN }}
+          repo-token: ${{ secrets.githubToken }}
