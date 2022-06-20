@@ -3,23 +3,55 @@ name: Build Container Image
 on:
   workflow_call:
     inputs:
+      ref_name:
+        required: true
+        type: string
       imageName:
         required: true
         type: string
+      tags:
+        required: false
+        description: "Image tags, in case of multiple tags use string delimited by \n eg: test1\ntest2"
+        default: ""
+        type: string
       registry:
-        required: false
+        description: "Container image registry, eg: 1234567789012.dkr.ecr.eu-central-1.amazonaws.com"
+        required: true
         type: string
-        default: 330817282416.dkr.ecr.eu-central-1.amazonaws.com
-      region:
+      buildArgs:
         required: false
-        description: 'Region to deploy the application to'
-        default: 'eu-central-1'
+        description: "Build args, in case of multiple tags use string demlimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
+        default: ""
         type: string
+      dockerfilePath:
+        required: false
+        default: "."
+        type: string
+      exitOnScanFail:
+        required: false
+        description: "Flag to abort push to registry if security scan has CRITICAL flaws"
+        default: 0
+        type: string
+      app:
+        required: true
+        type: string
+      chartRepo:
+        required: true
+        type: string
+      imageTag:
+        type: string
+        required: true
+        description: New tag that has to be updated in the chart
     secrets:
-      awsAccessKeyId:
+      containerRegistryUser:
         required: true
-      awsSecretAccessKey:
+      containerRegistryPassword:
         required: true
+      sshKey:
+        required: false
+      secretBuildArgs:
+        description: "Build args that should stay secret, in case of multiple tags use string delimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
+        required: false
       githubToken:
         required: true
 
@@ -35,7 +67,7 @@ jobs:
       - name: Validate branch name
         id: validate
         run: |
-          if [[ '${{ inputs.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
+          if [[ '${{ inputs.refName }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
             echo "::set-output name=valid::true"
           else
             echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
@@ -67,20 +99,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Get SSH Key from secret
+        id: ssh_key
+        run: echo "::set-output name=ssh_key::${{ secrets.sshKey }}"
+
+      - name: Setup SSH Auth Sock
+        uses: webfactory/ssh-agent@v0.5.4
+        if: ${{ steps.ssh_key.outputs.ssh_key }}
+        with:
+          ssh-private-key: ${{ secrets.sshKey }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          mask-aws-account-id: false
-          aws-access-key-id: ${{ secrets.awsAccessKeyId }}
-          aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
-          aws-region: ${{ inputs.region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Cache Docker layers
         uses: actions/cache@v2
@@ -88,24 +118,42 @@ jobs:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.ref_name }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ github.ref_name }}
+            ${{ runner.os }}-buildx-
+
       - name: Extract docker metadata
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           images: |
             ${{ inputs.registry }}/${{ inputs.imageName}}
           # Generate tags
           tags: |
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
-            type=raw,${{ needs.setup.outputs.image_tag }}\n${{ github.ref_name }}-latest
+            type=raw,${{ inputs.tags }}
+            type=ref,event=pr,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
+            type=ref,event=branch,suffix=-{{sha}}-{{date 'YYYYMMDDHHmm'}}
+            type=ref,event=tag
+
+      - name: Build locally before tests and scan (with ssh)
+        uses: docker/build-push-action@v2
+        if: ${{ env.SSH_AUTH_SOCK }}
+        with:
+          ssh: |
+            "default=${{ env.SSH_AUTH_SOCK }}"
+          context: ${{ inputs.dockerfilePath }}
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "{{ secrets.secretBuildArgs}}\n{{ inputs.buildArgs }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Build locally before tests and scan
         uses: docker/build-push-action@v2
         with:
-          context: ${{ inputs.dockerfile_path }}
+          context: ${{ inputs.dockerfilePath }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "GITHUB_TOKEN=${{ secrets.githubToken }}\n${{ inputs.build_args }}"
+          build-args: "{{ secrets.secretBuildArgs}}\n{{ inputs.buildArgs }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -114,21 +162,65 @@ jobs:
         run: |
           first_tag=$(echo "${{steps.meta.outputs.tags}}" | cut -d$'\n' -f1)
           echo "::set-output name=first_tag::$first_tag"
+
       # Trivy vulnerability scan
       - name: Run vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.get-first-tag.outputs.first_tag }}
-          format: 'table'
-          exit-code: ${{ inputs.exit_on_scan_fail }}
+          format: "table"
+          exit-code: ${{ inputs.exitOnScanFail }}
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      - name: Loging to container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.containerRegistryUser }}
+          password: ${{ secrets.containerRegistryPassword }}
+
+      - name: Build and push (with ssh)
+        uses: docker/build-push-action@v2
+        if: ${{ env.SSH_AUTH_SOCK }}
+        with:
+          ssh: |
+            "default=${{ env.SSH_AUTH_SOCK }}"
+          context: ${{ inputs.dockerfilePath }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: "{{ secrets.secretBuildArgs}}\n{{ inputs.buildArgs }}"
 
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: ${{ inputs.dockerfile_path }}
+          context: ${{ inputs.dockerfilePath }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "GITHUB_TOKEN=${{ secrets.githubToken }}\n${{ inputs.build_args }}"
+          build-args: "{{ secrets.secretBuildArgs}}\n{{ inputs.buildArgs }}"
+
+  update-preview-chart:
+    name: Preview chart update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get and update ${{ inputs.chartRepo }} umbrella helm chart for mfe
+        uses: actions/checkout@v3
+        with:
+          repository: adjust/${{ inputs.chartRepo }}
+          token: ${{ secrets.githubToken }}
+          submodules: recursive
+          fetch-depth: 0
+          ref: master
+      - name: Update image and commit the changes to ${{ inputs.chartRepo }}
+        run: |
+          cd helm/mfe
+          git config --global user.name "Github preview creation bot"
+          git config --global user.email "<>"
+          git checkout pr-${{ inputs.refName }} 2>/dev/null || git checkout -b pr-${{ inputs.refName }}
+          if [[ $(yq '.${{ inputs.app }}.image.tag' values.yaml) != "${{ inputs.imageTag }}" ]]; then
+            yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.imageTag }}"' values.yaml
+            git add values.yaml
+            git commit -m "${{ inputs.app }}: Update images version in chart for commit ${{ github.sha }}" -a
+            git push origin pr-${{ inputs.ref_name }}
+          fi
