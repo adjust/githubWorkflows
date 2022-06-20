@@ -29,7 +29,7 @@ on:
         required: true
       ansibleVaultPassword:
         required: true
-      automateDeploySshKey:
+      sshKey:
         required: true
       sentryProjectDsn:
         required: false
@@ -147,7 +147,7 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
         with:
-          key: ${{ secrets.automateDeploySshKey }}
+          key: ${{ secrets.sshKey }}
           known_hosts: ${{ steps.known_hosts.outputs.contents }}
           config: |
             Host *.adjust.com
@@ -229,7 +229,7 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
         with:
-          key: ${{ secrets.automateDeploySshKey }}
+          key: ${{ secrets.sshKey }}
           known_hosts: ${{ steps.known_hosts.outputs.contents }}
           config: |
             Host *.adjust.com
@@ -315,7 +315,7 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
         with:
-          key: ${{ secrets.automateDeploySshKey }}
+          key: ${{ secrets.sshKey }}
           known_hosts: ${{ steps.known_hosts.outputs.contents }}
           config: |
             Host *.adjust.com
