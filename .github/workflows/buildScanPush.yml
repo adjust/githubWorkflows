@@ -189,7 +189,7 @@ jobs:
   updatePreviewChart:
     name: Preview chart update
     needs: [validate, buildScanPush]
-    if: ${{ needs.validate.outputs.valid == 'true' && inputs.chart_repo != '' && secrets.TEAM_GITHUB_TOKEN != '' }}
+    if: ${{ needs.validate.outputs.valid == 'true' && inputs.chart_repo != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Get and update ${{ inputs.chart_repo }} umbrella helm chart
