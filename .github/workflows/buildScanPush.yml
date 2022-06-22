@@ -125,7 +125,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -135,7 +135,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -172,7 +172,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
 
       - name: Build and push
         uses: docker/build-push-action@v2
@@ -180,7 +180,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
 
   updatePreviewChart:
     name: Preview chart update
