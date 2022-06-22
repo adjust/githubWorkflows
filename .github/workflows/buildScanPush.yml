@@ -55,7 +55,7 @@ on:
       SECRET_BUILD_ARGS:
         description: "Build args that should stay secret, in case of multiple tags use string delimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         required: false
-      GITHUB_TOKEN:
+      TEAM_GITHUB_TOKEN:
         required: false
         description: "Token for pushing commits to other repositories"
 
@@ -189,14 +189,14 @@ jobs:
   updatePreviewChart:
     name: Preview chart update
     needs: [validate, buildScanPush]
-    if: ${{ needs.validate.outputs.valid == 'true' && inputs.chart_repo != '' && secrets.GITHUB_TOKEN != '' }}
+    if: ${{ needs.validate.outputs.valid == 'true' && inputs.chart_repo != '' && secrets.TEAM_GITHUB_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Get and update ${{ inputs.chart_repo }} umbrella helm chart
         uses: actions/checkout@v3
         with:
           repository: adjust/${{ inputs.chart_repo }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
           submodules: recursive
           fetch-depth: 0
           ref: master
