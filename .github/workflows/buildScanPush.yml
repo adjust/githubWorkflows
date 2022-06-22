@@ -63,7 +63,7 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
-    if: ${{ inputs.validate == 'true' }}
+    if: ${{ inputs.validate }}
     steps:
       - name: Validate branch name
         id: validate
