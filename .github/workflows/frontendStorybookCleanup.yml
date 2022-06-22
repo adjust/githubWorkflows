@@ -3,18 +3,18 @@ name: Storybook Cleanup
 on:
   workflow_call:
     secrets:
-      githubToken:
+      github_token:
         required: true
-      ansibleVaultPassword:
+      ansible_vault_password:
         required: true
-      sshKey:
+      ssh_key:
         required: true
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 env:
-  ANSIBLE_VAULT_PASSWORD: ${{ secrets.ansibleVaultPassword }}
-  GITHUB_TOKEN: ${{ secrets.githubToken }}
+  ANSIBLE_VAULT_PASSWORD: ${{ secrets.ansible_vault_password }}
+  GITHUB_TOKEN: ${{ secrets.github_token }}
 
 jobs:
   cleanup:
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: adjust/cc-ansible
-          token: ${{ secrets.githubToken }}
+          token: ${{ secrets.github_token }}
 
       - name: Read known_hosts.txt
         id: known_hosts
@@ -37,7 +37,7 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
         with:
-          key: ${{ secrets.sshKey }}
+          key: ${{ secrets.ssh_key }}
           known_hosts: ${{ steps.known_hosts.outputs.contents }}
           config: |
             Host *.adjust.com
