@@ -25,7 +25,7 @@ on:
         required: false
         type: string
     secrets:
-      github_token:
+      github_access_token:
         required: true
       ansible_vault_password:
         required: true
@@ -83,7 +83,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.github_token }}
+          NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
 
       - name: Add slugs to env
         uses: rlespinasse/github-slug-action@3.6.0
@@ -136,7 +136,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: adjust/cc-ansible
-          token: ${{ secrets.github_token }}
+          token: ${{ secrets.github_access_token }}
 
       - name: Read known_hosts.txt
         id: known_hosts
@@ -184,7 +184,7 @@ jobs:
         uses: mshick/add-pr-comment@v1
         with:
           message: 'Check the deployed **micro-application** [preview](https://${{env.GITHUB_HEAD_REF_SLUG_URL}}.preview.adjust.com${{ inputs.app_path }})!🚀'
-          repo-token: ${{ secrets.github_token }}
+          repo-token: ${{ secrets.github_access_token }}
 
   e2e_preview:
     name: Run E2E tests on preview environment
@@ -218,7 +218,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: adjust/cc-ansible
-          token: ${{ secrets.github_token }}
+          token: ${{ secrets.github_access_token }}
 
       - name: Read known_hosts.txt
         id: known_hosts
@@ -304,7 +304,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: adjust/cc-ansible
-          token: ${{ secrets.github_token }}
+          token: ${{ secrets.github_access_token }}
 
       - name: Read known_hosts.txt
         id: known_hosts
@@ -380,7 +380,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.github_token }}
+          NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
 
       - name: Download translation artifacts
         uses: actions/download-artifact@v3
