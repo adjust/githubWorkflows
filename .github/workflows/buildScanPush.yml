@@ -33,10 +33,6 @@ on:
         required: false
         default: false
         type: boolean
-      update_preview_chart:
-        required: false
-        default: false
-        type: boolean
       chart_repo:
         required: false
         type: string
