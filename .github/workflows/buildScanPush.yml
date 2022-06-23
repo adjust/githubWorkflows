@@ -31,7 +31,7 @@ on:
         required: false
       validate:
         required: false
-        default: false
+        default: true
         type: boolean
       chart_repo:
         required: false
