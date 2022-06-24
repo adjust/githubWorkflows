@@ -64,6 +64,8 @@ jobs:
     name: Validate
     runs-on: ubuntu-latest
     if: ${{ inputs.validate }}
+    outputs:
+      valid: ${{ steps.validate.outputs.valid }}
     steps:
       - name: Validate branch name
         id: validate
