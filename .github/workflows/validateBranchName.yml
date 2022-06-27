@@ -16,13 +16,14 @@ on:
         value: ${{ jobs.validate.outputs.validity }}
       sanitized:
         description: "Returns a sanitized branch name"
-        value: ${{ jobs.sanitize.outputs.sanitized }}
+        value: ${{ jobs.validate.outputs.sanitized }}
 jobs:        
   validate:
     name: Validate
     runs-on: ubuntu-latest
     outputs:
       validity: ${{ steps.validate.outputs.valid }}
+      sanitized: ${{ steps.validate.outputs.sanitized }}
     steps:
       - name: Validate branch name
         id: validate
