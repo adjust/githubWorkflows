@@ -16,7 +16,7 @@ on:
         value: ${{ jobs.validate.outputs.validity }}
       sanitized:
         description: "Returns a sanitized branch name"
-        value: ${{ jobs.sanitized.outputs.sanitized }}
+        value: ${{ jobs.sanitize.outputs.sanitized }}
 jobs:        
   validate:
     name: Validate
