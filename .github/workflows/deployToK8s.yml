@@ -56,7 +56,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.region }}
 
-      - uses: azure/setup-kubectl@v2.0
+      - uses: azure/setup-kubectl@v2.1
         with:
           version: 'v1.22.0'
 
@@ -65,7 +65,7 @@ jobs:
           aws eks --region eu-central-1 update-kubeconfig --name ${{ inputs.cluster }}
 
       - name: Start deployment
-        uses: bobheadxi/deployments@v0.6.0
+        uses: bobheadxi/deployments@v1.2.0
         id: deployment
         with:
           step: start
@@ -95,7 +95,7 @@ jobs:
           done
 
       - name: Update the deployment status
-        uses: bobheadxi/deployments@v0.6.0
+        uses: bobheadxi/deployments@v1.2.0
         if: always()
         with:
           step: finish
