@@ -6,10 +6,17 @@ on:
       ref_name:
         required: true
         type: string
+      sanitize:
+        required: false
+        type: string
+        default: true
     outputs:
       valid:
         description: "Returns true if valid else false"
         value: ${{ jobs.validate.outputs.validity }}
+      sanitized:
+        description: "Returns a sanitized branch name"
+        value: ${{ jobs.validate.outputs.sanitized }}
 jobs:        
   validate:
     name: Validate
@@ -26,3 +33,12 @@ jobs:
             echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
             echo "::set-output name=valid::false"
           fi
+      - name: Sanitize branch name
+        if: inputs.ref_name
+        id: sanitize
+        run: |
+          sanitized_branch_name=$(echo ${{ inputs.ref_name }}|sed -r 's/[^0-9A-Za-z\-]/-/g'|sed -r 's/[-]$//g')
+          echo "::set-output name=sanitized::${sanitized_branch_name}"
+
+
+
