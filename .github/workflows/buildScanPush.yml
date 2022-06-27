@@ -8,7 +8,7 @@ on:
         type: string
       tags:
         description: "Image tags, in case of multiple tags use string delimited by \n eg: test1\ntest2"
-        default: ${{ github.ref_name }}-${{ github.sha }}
+        default: ""
         type: string
         required: false
       registry:
@@ -51,9 +51,6 @@ on:
       SECRET_BUILD_ARGS:
         description: "Build args that should stay secret, in case of multiple tags use string delimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         required: false
-      TEAM_GITHUB_TOKEN:
-        required: false
-        description: "Token for pushing commits to other repositories"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -65,10 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.validate }}
     outputs:
-      valid: ${{ steps.validate.outputs.valid }}
+      valid: ${{ steps.validateBranch.outputs.valid }}
     steps:
       - name: Validate branch name
-        id: validate
+        id: validateBranch
         run: |
           if [[ '${{ github.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
             echo "::set-output name=valid::true"
@@ -183,30 +180,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
-
-  updatePreviewChart:
-    name: Preview chart update
-    needs: [validate, buildScanPush]
-    if: ${{ needs.validate.outputs.valid && inputs.chart_repo != '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get and update ${{ inputs.chart_repo }} umbrella helm chart
-        uses: actions/checkout@v3
-        with:
-          repository: adjust/${{ inputs.chart_repo }}
-          token: ${{ secrets.TEAM_GITHUB_TOKEN }}
-          submodules: recursive
-          fetch-depth: 0
-          ref: master
-      - name: Update image and commit the changes to ${{ inputs.chart_repo }}
-        run: |
-          cd helm/mfe
-          git config --global user.name "Github preview creation bot"
-          git config --global user.email "<>"
-          git checkout pr-${{ github.ref_name }} 2>/dev/null || git checkout -b pr-${{ github.ref_name }}
-          if [[ $(yq '.${{ inputs.app }}.image.tag' values.yaml) != "${{ inputs.tags }}" ]]; then
-            yq -i '.${{ inputs.app }}.image.tag = "${{ inputs.tags }}"' values.yaml
-            git add values.yaml
-            git commit -m "${{ inputs.app }}: Update images version in chart for commit ${{ github.sha }}" -a
-            git push origin pr-${{ github.ref_name }}
-          fi
