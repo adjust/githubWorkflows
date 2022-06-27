@@ -37,7 +37,7 @@ jobs:
         if: inputs.ref_name
         id: sanitize
         run: |
-          sanitized_branch_name=$(echo ${{ inputs.ref_name }}|sed -r 's/[^0-9A-Za-z\-]/-/g'|sed -r 's/[-]$//g')
+          sanitized_branch_name=$(echo "${{ inputs.ref_name }}"|sed -r 's/[^0-9A-Za-z\-]/-/g'|sed -r 's/[-]$//g')
           echo "::set-output name=sanitized::${sanitized_branch_name}"
 
 
