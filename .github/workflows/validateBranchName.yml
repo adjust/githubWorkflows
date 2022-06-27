@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       validity: ${{ steps.validate.outputs.valid }}
-      sanitized: ${{ steps.validate.outputs.sanitized }}
+      sanitized: ${{ steps.sanitize.outputs.sanitized }}
     steps:
       - name: Validate branch name
         id: validate
