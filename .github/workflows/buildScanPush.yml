@@ -33,14 +33,6 @@ on:
         required: false
         default: true
         type: boolean
-      chart_repo:
-        required: false
-        type: string
-        default: ""
-      app:
-        required: false
-        type: string
-        default: "${{github.event.repository.name}}"
     secrets:
       CONTAINER_REGISTRY_USER:
         required: true
