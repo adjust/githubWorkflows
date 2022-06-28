@@ -1,0 +1,63 @@
+name: Pull request cleanup
+
+on:
+  workflow_call:
+    inputs:
+      app_folder:
+        required: true
+        type: string
+      app_name:
+        required: true
+        type: string
+    secrets:
+      github_access_token:
+        required: true
+      ansible_vault_password:
+        required: true
+      ssh_key:
+        required: true
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  ANSIBLE_VAULT_PASSWORD: ${{ secrets.ansible_vault_password }}
+  GITHUB_TOKEN: ${{ secrets.github_access_token }}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone cc-ansible
+        uses: actions/checkout@v3
+        with:
+          repository: adjust/cc-ansible
+          token: ${{ secrets.github_access_token }}
+
+      - name: Read known_hosts.txt
+        id: known_hosts
+        uses: andstor/file-reader-action@v1
+        with:
+          path: 'known_hosts.txt'
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2.3.1
+        with:
+          key: ${{ secrets.ssh_key }}
+          known_hosts: ${{ steps.known_hosts.outputs.contents }}
+          config: |
+            Host *.adjust.com
+              User acquired
+
+      - name: Add slugs to env
+        uses: rlespinasse/github-slug-action@3.6.0
+
+      - name: 'Destroy: branch preview'
+        id: destroy_branch
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_on: timeout
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}" -t destroy
