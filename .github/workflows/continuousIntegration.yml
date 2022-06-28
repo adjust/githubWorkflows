@@ -24,6 +24,9 @@ on:
       sentry_project:
         required: false
         type: string
+      custom_e2e_run_command:
+        required: false
+        type: string
     secrets:
       github_access_token:
         required: true
@@ -40,6 +43,8 @@ on:
       e2e_user_password:
         required: false
       lexi_api_key:
+        required: false
+      e2e_slack_webhook_url:
         required: false
       slack_webhook_url:
         required: false
@@ -199,12 +204,23 @@ jobs:
         uses: rlespinasse/github-slug-action@3.6.0
 
       - name: Run E2E on Preview
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' && inputs.custom_e2e_run_command == ''}}
         uses: cypress-io/github-action@v3.2.0
         with:
           # BaseUrl is generated dynamically per each PR, all cypress config is in e2e/ci.json
           config: baseUrl=https://${{env.GITHUB_HEAD_REF_SLUG_URL}}.preview.adjust.com/datascape
           config-file: e2e/ci.json
+
+      - name:  Run E2E on Preview
+        if: ${{ github.event_name == 'pull_request' && inputs.custom_e2e_run_command != ''}}
+        run: ${{ inputs.custom_e2e_run_command }}
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: Test Results
+          path: |
+            e2e/results
 
   deploy_staging:
     name: Deploy to staging environment
@@ -262,6 +278,15 @@ jobs:
           retry_on: timeout
           command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
 
+      - name: Slack notification
+        if: ${{ always() && env.SLACK_WEBHOOK_URL != null }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        uses: adjust/github-actions-slack@v1.2.5
+        with:
+          status: ${{ job.status }}
+          steps: ${{ toJson(steps) }}
+
   e2e_staging:
     name: Run E2E tests on staging environment
     runs-on: ubuntu-latest
@@ -275,16 +300,27 @@ jobs:
         uses: rlespinasse/github-slug-action@3.6.0
 
       - name: Run E2E on Staging
-        if: endsWith(github.ref, 'heads/staging')
+        if: ${{ endsWith(github.ref, 'heads/staging') && && inputs.custom_e2e_run_command == '' }}
         uses: cypress-io/github-action@v3.2.0
         with:
           config-file: e2e/ci.json
+
+      - name:  Run E2E on Staging
+        if: ${{endsWith(github.ref, 'heads/staging') && inputs.custom_e2e_run_command != ''}}
+        run: ${{ inputs.custom_e2e_run_command }}
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: Test Results
+          path: |
+            e2e/results
 
       - name: Send Slack notification
         if: env.SLACK_WEBHOOK_URL != null && failure()
         uses: adjust/github-actions-slack@v1.2.5
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_URL: ${{ secrets.e2e_slack_webhook_url }}
         with:
           channel: ${{ inputs.slack_channel}}
           status: ${{ job.status }}
@@ -355,6 +391,29 @@ jobs:
           max_attempts: 3
           retry_on: timeout
           command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+
+      - name: "Create Git tag for the release"
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: minor
+
+      - name: "Create a GitHub release based on the new Git tag"
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release v${{ steps.tag_version.outputs.new_version }}
+          generateReleaseNotes: true
+
+      - name: Slack notification
+        if: ${{ always() && env.SLACK_WEBHOOK_URL != null }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        uses: adjust/github-actions-slack@v1.2.5
+        with:
+          status: ${{ job.status }}
+          steps: ${{ toJson(steps) }}
 
   push_translations:
     name: Push translations to Lexi
