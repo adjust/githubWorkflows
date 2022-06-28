@@ -1,0 +1,138 @@
+name: Storybook Preview
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        required: true
+        type: string
+    secrets:
+      github_access_token:
+        required: true
+      ansible_vault_password:
+        required: true
+      ssh_key:
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANSIBLE_VAULT_PASSWORD: ${{ secrets.ansible_vault_password }}
+
+jobs:
+  build:
+    name: Build Storybook
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node_version }}
+          check-latest: true
+          always-auth: true
+          registry-url: https://npm.pkg.github.com
+          scope: '@adjust'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
+
+      - name: Build Storybook
+        run: npm run storybook:build
+
+      - name: Archive Storybook build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: storybook-static
+          path: storybook-static
+          retention-days: 5
+
+  deploy:
+    name: Deploy Storybook
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build]
+
+    steps:
+      - name: Clone ansible
+        uses: actions/checkout@v3
+        with:
+          repository: adjust/cc-ansible
+          token: ${{ secrets.github_access_token }}
+
+      - name: Read known_hosts.txt
+        id: known_hosts
+        uses: andstor/file-reader-action@v1
+        with:
+          path: 'known_hosts.txt'
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2.3.1
+        with:
+          key: ${{ secrets.ssh_key }}
+          known_hosts: ${{ steps.known_hosts.outputs.contents }}
+          config: |
+            Host *.adjust.com
+              User acquired
+
+      - name: Add slugs to env
+        uses: rlespinasse/github-slug-action@3.6.0
+
+      - name: Download Storybook build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: storybook-static
+          path: storybook-static
+
+      - name: Deploy to preview environment
+        uses: nick-invision/retry@v2
+        if: github.event_name == 'pull_request'
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: timeout
+          command: ansible-playbook -i staging playbooks/frontend/dashexp_storybook.yml -e source_dir=../../storybook-static -e branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}
+
+      - name: Share Storybook link in PR comments
+        uses: mshick/add-pr-comment@v1
+        if: github.event_name == 'pull_request'
+        with:
+          message: 'Check the deployed storybook [here](https://${{env.GITHUB_HEAD_REF_SLUG_URL}}.preview.adjust.com/datascape/storybook)! 📚'
+          repo-token: ${{ secrets.github_access_token }}
+
+  deploy_cloud:
+    name: Deploy storybook to the cloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps: 
+      - name: Validate branch name
+        id: validate
+        run: |
+          if [[ '${{ github.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
+            echo "::set-output name=valid::true"
+          else
+            echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
+            echo "::set-output name=valid::false"
+          fi
+      - uses: TimonVS/pr-labeler-action@v3
+        with:
+          configuration-path: .github/pr-labeler.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_access_token }}
+      - name: Share preview link in PR comments
+        uses: mshick/add-pr-comment@v1
+        with:
+          message: |
+            'Check the deployed **micro-application** k8s preview at [preview](https://dash-${{github.ref_name }}.qa.cloud.adjust.com/datascape/credentials/)!🚀'
+            'Check the deployed **storybook** k8s preview at [storybook](https://dash-${{ github.ref_name }}.qa.cloud.adjust.com/datascape/storybook/)!🚀'
+          repo-token: ${{ secrets.github_access_token }}
+

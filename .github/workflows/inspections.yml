@@ -1,0 +1,46 @@
+name: Inspections
+
+on:
+  workflow_call:
+    inputs:
+      node_version:
+        required: true
+        type: string
+    secrets:
+      github_access_token:
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspections:
+    name: Inspections
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        inspection_command: ['lint', 'types:validate', 'test:ci']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node_version }}
+          check-latest: true
+          always-auth: true
+          registry-url: https://npm.pkg.github.com
+          scope: '@adjust'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
+
+      - name: Run inspection
+        run: npm run ${{ matrix.inspection_command }}

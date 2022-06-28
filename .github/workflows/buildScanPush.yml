@@ -10,21 +10,29 @@ on:
         description: "Image tags, in case of multiple tags use string delimited by \n eg: test1\ntest2"
         default: ""
         type: string
+        required: false
       registry:
         description: "Container image registry, eg: 1234567789012.dkr.ecr.eu-central-1.amazonaws.com"
         required: true
         type: string
       build_args:
-        description: "Build args, in case of multiple tags use string demlimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
+        description: "Build args, in case of multiple tags use string delimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         default: ""
         type: string
+        required: false
       dockerfile_path:
         default: "."
         type: string
+        required: false
       exit_on_scan_fail:
         description: "Flag to abort push to registry if security scan has CRITICAL flaws"
         default: 0
         type: string
+        required: false
+      validate:
+        required: false
+        default: true
+        type: boolean
     secrets:
       CONTAINER_REGISTRY_USER:
         required: true
@@ -33,16 +41,36 @@ on:
       SSH_KEY:
         required: false
       SECRET_BUILD_ARGS:
-        description: "Build args that should stay secret, in case of multiple tags use string demlimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
+        description: "Build args that should stay secret, in case of multiple tags use string delimited by \n eg: arg0=val1,val2\narg1=test1\narg2=test2"
         required: false
-        
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !github.ref_protected }}
+
 jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    if: ${{ inputs.validate }}
+    outputs:
+      valid: ${{ steps.validateBranch.outputs.valid }}
+    steps:
+      - name: Validate branch name
+        id: validateBranch
+        run: |
+          if [[ '${{ github.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
+            echo "::set-output name=valid::true"
+          else
+            echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
+            echo "::set-output name=valid::false"
+          fi
+
   buildScanPush:
     name: Build scan and push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
 
       - name: Get SSH Key from secret
         id: ssh_key
@@ -88,7 +116,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -98,7 +126,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           load: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -135,7 +163,7 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
 
       - name: Build and push
         uses: docker/build-push-action@v3
@@ -143,4 +171,4 @@ jobs:
           context: ${{ inputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: "{{ secrets.SECRET_BUILD_ARGS}}\n{{ inputs.build_args }}"
+          build-args: "${{ secrets.SECRET_BUILD_ARGS}}\n${{ inputs.build_args }}"
