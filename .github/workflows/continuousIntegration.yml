@@ -6,13 +6,16 @@ on:
       node_version:
         required: true
         type: string
-      app_folder:
+      app_path:
+        required: true
+        type: string
+      app_location:
+        required: true
+        type: string
+      app_main_dir:
         required: true
         type: string
       app_name:
-        required: true
-        type: string
-      app_path:
         required: true
         type: string
       slack_channel:
@@ -24,6 +27,11 @@ on:
       sentry_project:
         required: false
         type: string
+      e2e_runner:
+        required: false
+        type: string
+        description: 'There are 3 supports values. No value disables E2E. "sh" runs "e2e/run.sh". "npm" runs "npm run test:e2e"'
+        default: ""
     secrets:
       github_access_token:
         required: true
@@ -41,6 +49,8 @@ on:
         required: false
       lexi_api_key:
         required: false
+      e2e_slack_webhook_url:
+        required: false
       slack_webhook_url:
         required: false
 
@@ -57,9 +67,7 @@ env:
   SENTRY_ORG: ${{ inputs.sentry_org }}
   SENTRY_PROJECT: ${{ inputs.sentry_project }}
   SENTRY_AUTH_TOKEN: ${{ secrets.sentry_auth_token }}
-  # E2E tests
-  CYPRESS_E2E_USER_LOGIN: ${{ secrets.e2e_user_login }}
-  CYPRESS_E2E_USER_PASSWORD: ${{ secrets.e2e_user_password }}
+  ADJUST_GITHUB_NPM_TOKEN: ${{ secrets.github_access_token }}
 
 jobs:
   build:
@@ -77,8 +85,8 @@ jobs:
           check-latest: true
           always-auth: true
           registry-url: https://npm.pkg.github.com
-          scope: '@adjust'
-          cache: 'npm'
+          scope: "@adjust"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -142,7 +150,7 @@ jobs:
         id: known_hosts
         uses: andstor/file-reader-action@v1
         with:
-          path: 'known_hosts.txt'
+          path: "known_hosts.txt"
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
@@ -167,8 +175,8 @@ jobs:
         if: env.REACT_APP_SENTRY_DSN != null
         with:
           environment: preview
-          sourcemaps: './build/static/js'
-          url_prefix: '~/static/js'
+          sourcemaps: "./build/static/js"
+          url_prefix: "~/static/js"
           set_commits: skip
           version: ${{ env.REACT_APP_SENTRY_RELEASE_VERSION }}
 
@@ -178,19 +186,19 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}"
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}"
 
       - name: Share preview link in PR comments
         uses: mshick/add-pr-comment@v1
         with:
-          message: 'Check the deployed **micro-application** [preview](https://${{env.GITHUB_HEAD_REF_SLUG_URL}}.preview.adjust.com${{ inputs.app_path }})!🚀'
+          message: "Check the deployed **micro-application** [preview](https://${{env.GITHUB_HEAD_REF_SLUG_URL}}.preview.adjust.com${{ inputs.app_path }})!🚀"
           repo-token: ${{ secrets.github_access_token }}
 
   e2e_preview:
     name: Run E2E tests on preview environment
     runs-on: ubuntu-latest
     needs: [deploy_preview]
-    if: github.event_name == 'pull_request'
+    if: ${{ github.event_name == 'pull_request' && inputs.e2e_runner != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -199,12 +207,29 @@ jobs:
         uses: rlespinasse/github-slug-action@3.6.0
 
       - name: Run E2E on Preview
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' && inputs.e2e_runner == 'npm'}}
         uses: cypress-io/github-action@v3.2.0
+        env:
+          CYPRESS_E2E_USER_LOGIN: ${{ secrets.e2e_user_login }}
+          CYPRESS_E2E_USER_PASSWORD: ${{ secrets.e2e_user_password }}
         with:
           # BaseUrl is generated dynamically per each PR, all cypress config is in e2e/ci.json
           config: baseUrl=https://${{env.GITHUB_HEAD_REF_SLUG_URL}}.preview.adjust.com/datascape
           config-file: e2e/ci.json
+
+      - name: Run E2E on Preview
+        if: ${{ github.event_name == 'pull_request' && inputs.e2e_runner == 'sh'}}
+        run: |
+          cd e2e
+          chmod +x ./run.sh
+          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://${{ env.GITHUB_HEAD_REF_SLUG_URL }}.preview.adjust.com/datascape
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: Test Results
+          path: |
+            e2e/results
 
   deploy_staging:
     name: Deploy to staging environment
@@ -224,7 +249,7 @@ jobs:
         id: known_hosts
         uses: andstor/file-reader-action@v1
         with:
-          path: 'known_hosts.txt'
+          path: "known_hosts.txt"
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
@@ -249,8 +274,8 @@ jobs:
         if: env.REACT_APP_SENTRY_DSN != null
         with:
           environment: staging
-          sourcemaps: './build/static/js'
-          url_prefix: '~/static/js'
+          sourcemaps: "./build/static/js"
+          url_prefix: "~/static/js"
           set_commits: skip
           version: ${{ env.REACT_APP_SENTRY_RELEASE_VERSION }}
 
@@ -260,13 +285,22 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
+
+      - name: Slack notification
+        if: ${{ always() && env.SLACK_WEBHOOK_URL != null }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        uses: adjust/github-actions-slack@v1.2.5
+        with:
+          status: ${{ job.status }}
+          steps: ${{ toJson(steps) }}
 
   e2e_staging:
     name: Run E2E tests on staging environment
     runs-on: ubuntu-latest
     needs: [deploy_staging]
-    if: endsWith(github.ref, 'heads/staging')
+    if: ${{ endsWith(github.ref, 'heads/staging') && inputs.e2e_runner != ''}}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -275,16 +309,33 @@ jobs:
         uses: rlespinasse/github-slug-action@3.6.0
 
       - name: Run E2E on Staging
-        if: endsWith(github.ref, 'heads/staging')
+        if: ${{ endsWith(github.ref, 'heads/staging') && inputs.e2e_runner == 'npm' }}
         uses: cypress-io/github-action@v3.2.0
+        env:
+          CYPRESS_E2E_USER_LOGIN: ${{ secrets.e2e_user_login }}
+          CYPRESS_E2E_USER_PASSWORD: ${{ secrets.e2e_user_password }}
         with:
           config-file: e2e/ci.json
+
+      - name: Run E2E on Staging
+        if: ${{endsWith(github.ref, 'heads/staging') && inputs.e2e_runner == 'sh'}}
+        run: |
+          cd e2e
+          chmod +x ./run.sh
+          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://dash-qa-2.adjust.com/datascape
+
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: Test Results
+          path: |
+            e2e/results
 
       - name: Send Slack notification
         if: env.SLACK_WEBHOOK_URL != null && failure()
         uses: adjust/github-actions-slack@v1.2.5
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_URL: ${{ secrets.e2e_slack_webhook_url }}
         with:
           channel: ${{ inputs.slack_channel}}
           status: ${{ job.status }}
@@ -310,7 +361,7 @@ jobs:
         id: known_hosts
         uses: andstor/file-reader-action@v1
         with:
-          path: 'known_hosts.txt'
+          path: "known_hosts.txt"
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2.3.1
@@ -335,26 +386,49 @@ jobs:
         if: env.REACT_APP_SENTRY_DSN != null
         with:
           environment: production
-          sourcemaps: './build/static/js'
-          url_prefix: '~/static/js'
+          sourcemaps: "./build/static/js"
+          url_prefix: "~/static/js"
           set_commits: skip
           version: ${{ env.REACT_APP_SENTRY_RELEASE_VERSION }}
 
-      - name: 'Deploy: production'
+      - name: "Deploy: production"
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i production playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i production playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
-      - name: 'Deploy: demo'
+      - name: "Deploy: demo"
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
+
+      - name: "Create Git tag for the release"
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: minor
+
+      - name: "Create a GitHub release based on the new Git tag"
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release v${{ steps.tag_version.outputs.new_version }}
+          generateReleaseNotes: true
+
+      - name: Slack notification
+        if: ${{ always() && env.SLACK_WEBHOOK_URL != null }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        uses: adjust/github-actions-slack@v1.2.5
+        with:
+          status: ${{ job.status }}
+          steps: ${{ toJson(steps) }}
 
   push_translations:
     name: Push translations to Lexi
@@ -374,8 +448,8 @@ jobs:
           check-latest: true
           always-auth: true
           registry-url: https://npm.pkg.github.com
-          scope: '@adjust'
-          cache: 'npm'
+          scope: "@adjust"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

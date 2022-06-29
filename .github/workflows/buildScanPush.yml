@@ -29,10 +29,6 @@ on:
         default: 0
         type: string
         required: false
-      validate:
-        required: false
-        default: true
-        type: boolean
     secrets:
       CONTAINER_REGISTRY_USER:
         required: true
@@ -49,23 +45,6 @@ concurrency:
   cancel-in-progress: ${{ !github.ref_protected }}
 
 jobs:
-  validate:
-    name: Validate
-    runs-on: ubuntu-latest
-    if: ${{ inputs.validate }}
-    outputs:
-      valid: ${{ steps.validateBranch.outputs.valid }}
-    steps:
-      - name: Validate branch name
-        id: validateBranch
-        run: |
-          if [[ '${{ github.ref_name }}' =~ ^[0-9A-Za-z\-]*[^\-]$ ]]; then
-            echo "::set-output name=valid::true"
-          else
-            echo 'Branch name should contain only - and alfa-numerics. Failing to do this will cause issues with k8s namespace and container image creation. Please refer to the documentation - https://kubernetes.io/docs/concepts/overview/working-with-objects/names/'
-            echo "::set-output name=valid::false"
-          fi
-
   buildScanPush:
     name: Build scan and push
     runs-on: ubuntu-latest
