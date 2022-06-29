@@ -6,13 +6,16 @@ on:
       node_version:
         required: true
         type: string
-      app_folder:
+      app_path:
+        required: true
+        type: string
+      app_location:
+        required: true
+        type: string
+      app_main_dir:
         required: true
         type: string
       app_name:
-        required: true
-        type: string
-      app_path:
         required: true
         type: string
       slack_channel:
@@ -182,7 +185,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}"
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}"
 
       - name: Share preview link in PR comments
         uses: mshick/add-pr-comment@v1
@@ -281,7 +284,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
       - name: Slack notification
         if: ${{ always() && env.SLACK_WEBHOOK_URL != null }}
@@ -393,7 +396,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i production playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i production playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
       - name: "Deploy: demo"
         uses: nick-invision/retry@v2
@@ -401,7 +404,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_folder }} main_dir={{ user_home }}/mfe/${{ inputs.app_folder }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=datascape/${{ inputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
       - name: "Create Git tag for the release"
         id: tag_version
