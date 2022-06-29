@@ -101,12 +101,18 @@ jobs:
         run: npm run build
         env:
           REACT_APP_SENTRY_ENVIRONMENT: preview
+          REACT_APP_RELEASE_ENV: preview
+          REACT_APP_API_DOMAIN: https://api-qa-2.adjust.com
+          REACT_APP_DASHBOARD_API_DOMAIN: https://dash-qa-2.adjust.com
 
       - name: Build staging
         if: endsWith(github.ref, 'heads/staging')
         run: npm run build
         env:
           REACT_APP_SENTRY_ENVIRONMENT: staging
+          REACT_APP_RELEASE_ENV: staging
+          REACT_APP_API_DOMAIN: https://api-qa-2.adjust.com
+          REACT_APP_DASHBOARD_API_DOMAIN: https://dash-qa-2.adjust.com
 
       - name: Build production
         if: endsWith(github.ref, 'heads/production')
