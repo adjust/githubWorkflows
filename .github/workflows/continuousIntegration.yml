@@ -91,6 +91,7 @@ jobs:
         run: npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
+          ADJUST_GITHUB_NPM_TOKEN: ${{ secrets.github_access_token }}
 
       - name: Add slugs to env
         uses: rlespinasse/github-slug-action@3.6.0
@@ -454,6 +455,7 @@ jobs:
         run: npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
+          ADJUST_GITHUB_NPM_TOKEN: ${{ secrets.github_access_token }}
 
       - name: Download translation artifacts
         uses: actions/download-artifact@v3
