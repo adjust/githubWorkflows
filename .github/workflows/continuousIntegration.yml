@@ -64,9 +64,6 @@ env:
   SENTRY_ORG: ${{ inputs.sentry_org }}
   SENTRY_PROJECT: ${{ inputs.sentry_project }}
   SENTRY_AUTH_TOKEN: ${{ secrets.sentry_auth_token }}
-  # E2E tests
-  CYPRESS_E2E_USER_LOGIN: ${{ secrets.e2e_user_login }}
-  CYPRESS_E2E_USER_PASSWORD: ${{ secrets.e2e_user_password }}
 
 jobs:
   build:
@@ -218,7 +215,7 @@ jobs:
         run: |
           cd e2e
           chmod +x ./run.sh
-          ./run.sh $CYPRESS_E2E_USER_LOGIN $CYPRESS_E2E_USER_PASSWORD https://${{ env.GITHUB_HEAD_REF_SLUG_URL }}.preview.adjust.com/datascape
+          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://${{ env.GITHUB_HEAD_REF_SLUG_URL }}.preview.adjust.com/datascape
 
       - uses: actions/upload-artifact@v2
         if: always()
@@ -315,7 +312,7 @@ jobs:
         run: |
           cd e2e
           chmod +x ./run.sh
-          ./run.sh $CYPRESS_E2E_USER_LOGIN $CYPRESS_E2E_USER_PASSWORD https://dash-qa-2.adjust.com/datascape
+          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://dash-qa-2.adjust.com/datascape
 
       - uses: actions/upload-artifact@v2
         if: always()
