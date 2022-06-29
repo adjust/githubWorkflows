@@ -34,7 +34,7 @@ jobs:
           ref: master
       - name: Update image and commit the changes to ${{ inputs.chart_repo }}
         run: |
-          cd helm/mfe
+          cd helm/applications/mfe
           git config --global user.name "Github preview creation bot"
           git config --global user.email "<>"
           git checkout pr-${{ inputs.ref_name }} 2>/dev/null || git checkout -b pr-${{ inputs.ref_name }}
