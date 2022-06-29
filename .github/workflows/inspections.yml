@@ -41,6 +41,7 @@ jobs:
         run: npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
+          ADJUST_GITHUB_NPM_TOKEN: ${{ secrets.github_access_token }}
 
       - name: Run inspection
         run: npm run ${{ matrix.inspection_command }}
