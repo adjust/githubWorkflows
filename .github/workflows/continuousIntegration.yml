@@ -77,7 +77,7 @@ jobs:
     outputs:
       app_location: ${{ steps.set_app_location.outputs.app_location }}
       lexi_enabled: ${{ steps.detect_lexi.outputs.lexi_enabled }}
-      sentry_enabled: ${{ steps.detect_sentry.outputs.lexi_enabled }}
+      sentry_enabled: ${{ steps.detect_sentry.outputs.sentry_enabled }}
       slack_enabled: ${{ steps.detect_slack.outputs.slack_enabled }}
       e2e_slack_enabled: ${{ steps.detect_e2e_slack.outputs.e2e_slack_enabled }}
     steps:
