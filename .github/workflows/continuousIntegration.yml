@@ -87,25 +87,25 @@ jobs:
       - name: Detect Lexi
         id: detect_lexi
         if: "${{ env.LEXI_API_KEY != '' }}"
-        run: echo "::set-output lexi_enabled=defined::true"
+        run: echo "::set-output name=lexi_enabled::true"
         env:
           LEXI_API_KEY: ${{ secrets.lexi_api_key }}
       - name: Detect Sentry
         id: detect_sentry
         if: "${{ env.SENTRY_PROJECT_DSN != '' }}"
-        run: echo "::set-output sentry_enabled=defined::true"
+        run: echo "::set-output name=sentry_enabled::true"
         env:
           SENTRY_PROJECT_DSN: ${{ secrets.sentry_project_dsn }}
       - name: Detect Slack
         id: detect_slack
         if: "${{ env.SLACK_WEBHOOK_URL != '' }}"
-        run: echo "::set-output slack_enabled=defined::true"
+        run: echo "::set-output name=slack_enabled::true"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
       - name: Detect E2E Slack
         id: detect_e2e_slack
         if: "${{ env.E2E_SLACK_WEBHOOK_URL != '' }}"
-        run: echo "::set-output e2e_slack_enabled=defined::true"
+        run: echo "::set-output name=e2e_slack_enabled::true"
         env:
           E2E_SLACK_WEBHOOK_URL: ${{ secrets.e2e_slack_webhook_url }}
 
