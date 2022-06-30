@@ -71,30 +71,49 @@ env:
   ADJUST_GITHUB_NPM_TOKEN: ${{ secrets.github_access_token }}
 
 jobs:
-  configure:
-    name: Configure
+  configure_variables:
+    name: Configure Variables
     runs-on: ubuntu-latest
     outputs:
-      lexi_api_key: ${{ steps.set_envs.outputs.lexi_api_key }}
-      react_app_sentry_dsn: ${{ steps.set_envs.outputs.react_app_sentry_dsn }}
-      slack_webhook_url: ${{ steps.set_envs.outputs.slack_webhook_url }}
-      e2e_slack_webhook_url: ${{ steps.set_envs.outputs.e2e_slack_webhook_url }}
-      app_location: ${{ steps.set_envs.outputs.app_location }}
+      app_location: ${{ steps.set_app_location.outputs.app_location }}
+      lexi_enabled: ${{ steps.detect_lexi.outputs.lexi_enabled }}
+      sentry_enabled: ${{ steps.detect_sentry.outputs.lexi_enabled }}
+      slack_enabled: ${{ steps.detect_slack.outputs.slack_enabled }}
+      e2e_slack_enabled: ${{ steps.detect_e2e_slack.outputs.e2e_slack_enabled }}
     steps:
-      - name: Set Envs
-        id: set_envs
-        run: |
-          echo "::set-output name=lexi_api_key::${{ secrets.lexi_api_key }}"
-          echo "::set-output name=react_app_sentry_dsn::${{ secrets.REACT_APP_SENTRY_DSN }}"
-          echo "::set-output name=slack_webhook_url::${{ secrets.slack_webhook_url }}"
-          echo "::set-output name=e2e_slack_webhook_url::${{ secrets.e2e_slack_webhook_url }}"
-          echo "::set-output name=app_location::datascape${{ inputs.app_location && '/' || '' }}${{ inputs.app_location }}"
+      - name: Set app location
+        id: set_app_location
+        run: echo "::set-output name=app_location::datascape${{ inputs.app_location && '/' || '' }}${{ inputs.app_location }}"
+      - name: Detect Lexi
+        id: detect_lexi
+        if: "${{ env.LEXI_API_KEY != '' }}"
+        run: echo "::set-output lexi_enabled=defined::true"
+        env:
+          LEXI_API_KEY: ${{ secrets.lexi_api_key }}
+      - name: Detect Sentry
+        id: detect_sentry
+        if: "${{ env.SENTRY_PROJECT_DSN != '' }}"
+        run: echo "::set-output sentry_enabled=defined::true"
+        env:
+          SENTRY_PROJECT_DSN: ${{ secrets.sentry_project_dsn }}
+      - name: Detect Slack
+        id: detect_slack
+        if: "${{ env.SLACK_WEBHOOK_URL != '' }}"
+        run: echo "::set-output slack_enabled=defined::true"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+      - name: Detect E2E Slack
+        id: detect_e2e_slack
+        if: "${{ env.E2E_SLACK_WEBHOOK_URL != '' }}"
+        run: echo "::set-output e2e_slack_enabled=defined::true"
+        env:
+          E2E_SLACK_WEBHOOK_URL: ${{ secrets.e2e_slack_webhook_url }}
 
   build:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [configure]
+    needs: [configure_variables]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -143,7 +162,7 @@ jobs:
           REACT_APP_SENTRY_ENVIRONMENT: production
 
       - name: Validate translations
-        if: ${{ needs.configure.outputs.lexi_api_key != null }}
+        if: needs.configure_variables.outputs.lexi_enabled == 'true'
         run: npm run intl:validate
 
       - name: Archive build artifacts
@@ -154,7 +173,7 @@ jobs:
           retention-days: 3
 
       - name: Archive translation artifacts
-        if: ${{ needs.configure.outputs.lexi_api_key != null }}
+        if: needs.configure_variables.outputs.lexi_enabled == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: extractedTranslations
@@ -165,7 +184,7 @@ jobs:
     name: Deploy to preview environment
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [build, configure]
+    needs: [build, configure_variables]
     if: github.event_name == 'pull_request' && github.event.pull_request.merged == false && github.event.pull_request.closed == false
 
     steps:
@@ -201,7 +220,7 @@ jobs:
 
       - name: Create Sentry release
         uses: getsentry/action-release@v1
-        if: ${{ needs.configure.outputs.react_app_sentry_dsn != null }}
+        if: needs.configure_variables.outputs.sentry_enabled == 'true'
         with:
           environment: preview
           sourcemaps: "./build/static/js"
@@ -215,7 +234,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}"
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure_variables.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }} branch=${{env.GITHUB_HEAD_REF_SLUG_URL}}"
 
       - name: Share preview link in PR comments
         uses: mshick/add-pr-comment@v1
@@ -264,7 +283,7 @@ jobs:
     name: Deploy to staging environment
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [build, configure]
+    needs: [build, configure_variables]
     if: endsWith(github.ref, 'heads/staging')
 
     steps:
@@ -300,7 +319,7 @@ jobs:
 
       - name: Create Sentry release
         uses: getsentry/action-release@v1
-        if: ${{ needs.configure.outputs.react_app_sentry_dsn != null }}
+        if: needs.configure_variables.outputs.sentry_enabled == 'true'
         with:
           environment: staging
           sourcemaps: "./build/static/js"
@@ -314,10 +333,10 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i staging playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure_variables.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
       - name: Slack notification
-        if: ${{ always() && needs.configure.outputs.slack_webhook_url != null }}
+        if: ${{ always() && needs.configure_variables.outputs.slack_enabled == 'true' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
         uses: adjust/github-actions-slack@v1.2.5
@@ -328,7 +347,7 @@ jobs:
   e2e_staging:
     name: Run E2E tests on staging environment
     runs-on: ubuntu-latest
-    needs: [deploy_staging, configure]
+    needs: [deploy_staging, configure_variables]
     if: ${{ endsWith(github.ref, 'heads/staging') && inputs.e2e_runner != ''}}
     steps:
       - name: Checkout
@@ -361,7 +380,7 @@ jobs:
             e2e/results
 
       - name: Send Slack notification
-        if: ${{ failure() && needs.configure.outputs.e2e_slack_webhook_url != null }} 
+        if: ${{ failure() && needs.configure_variables.outputs.e2e_slack_enabled == 'true' }}
         uses: adjust/github-actions-slack@v1.2.5
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.e2e_slack_webhook_url }}
@@ -376,7 +395,7 @@ jobs:
     name: Deploy to production and demo environments
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [build, configure]
+    needs: [build, configure_variables]
     if: endsWith(github.ref, 'heads/production')
 
     steps:
@@ -412,7 +431,7 @@ jobs:
 
       - name: Create Sentry release
         uses: getsentry/action-release@v1
-        if: ${{ needs.configure.outputs.react_app_sentry_dsn != null }}
+        if: needs.configure_variables.outputs.sentry_enabled == 'true'
         with:
           environment: production
           sourcemaps: "./build/static/js"
@@ -426,7 +445,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i production playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i production playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure_variables.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
       - name: "Deploy: demo"
         uses: nick-invision/retry@v2
@@ -434,7 +453,7 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
-          command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
+          command: ansible-playbook -i demo playbooks/frontend/mfe.yml --extra-vars "source_dir=../../build location=${{ needs.configure_variables.outputs.app_location }} main_dir={{ user_home }}/mfe/${{ inputs.app_main_dir }} app_name=${{ inputs.app_name }}"
 
       - name: "Create Git tag for the release"
         id: tag_version
@@ -451,7 +470,7 @@ jobs:
           generateReleaseNotes: true
 
       - name: Slack notification
-        if: ${{ always() && env.SLACK_WEBHOOK_URL != null }}
+        if: ${{ always() && needs.configure_variables.outputs.slack_enabled == 'true' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
         uses: adjust/github-actions-slack@v1.2.5
@@ -463,8 +482,8 @@ jobs:
     name: Push translations to Lexi
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [build, configure]
-    if: ${{ endsWith(github.ref, 'heads/staging') && needs.configure.outputs.lexi_api_key != null }}
+    needs: [build, configure_variables]
+    if: ${{ endsWith(github.ref, 'heads/staging') && needs.configure_variables.outputs.lexi_enabled == 'true' }}
 
     steps:
       - name: Checkout
