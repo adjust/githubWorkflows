@@ -134,7 +134,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.github_access_token }}
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: Build preview
         if: github.event_name == 'pull_request'
@@ -209,7 +209,7 @@ jobs:
               User acquired
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: Download build artifacts
         uses: actions/download-artifact@v3
@@ -241,7 +241,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: Run E2E on Preview
         if: ${{ github.event_name == 'pull_request' && inputs.e2e_runner == 'npm'}}
@@ -298,7 +298,7 @@ jobs:
               User acquired
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: Download build artifacts
         uses: actions/download-artifact@v3
@@ -343,7 +343,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: Run E2E on Staging
         if: ${{ endsWith(github.ref, 'heads/staging') && inputs.e2e_runner == 'npm' }}
@@ -410,7 +410,7 @@ jobs:
               User acquired
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: Download build artifacts
         uses: actions/download-artifact@v3

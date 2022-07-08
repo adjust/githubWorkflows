@@ -51,7 +51,7 @@ jobs:
               User acquired
 
       - name: Add slugs to env
-        uses: rlespinasse/github-slug-action@3.6.0
+        uses: rlespinasse/github-slug-action@4.2.5
 
       - name: 'Destroy: branch preview'
         id: destroy_branch
