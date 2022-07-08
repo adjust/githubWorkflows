@@ -140,7 +140,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: npm run build
         env:
-          REACT_APP_SENTRY_ENVIRONMENT: preview
           REACT_APP_RELEASE_ENV: preview
           REACT_APP_API_DOMAIN: https://api-qa-2.adjust.com
           REACT_APP_DASHBOARD_API_DOMAIN: https://dash-qa-2.adjust.com
@@ -217,16 +216,6 @@ jobs:
         with:
           name: build
           path: build
-
-      - name: Create Sentry release
-        uses: getsentry/action-release@v1
-        if: needs.configure_variables.outputs.sentry_enabled == 'true'
-        with:
-          environment: preview
-          sourcemaps: "./build/static/js"
-          url_prefix: "~/static/js"
-          set_commits: skip
-          version: ${{ env.REACT_APP_SENTRY_RELEASE_VERSION }}
 
       - name: Deploy
         uses: nick-invision/retry@v2
