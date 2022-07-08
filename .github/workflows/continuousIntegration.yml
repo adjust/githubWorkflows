@@ -261,7 +261,7 @@ jobs:
           chmod +x ./run.sh
           ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://${{ env.GITHUB_HEAD_REF_SLUG_URL }}.preview.adjust.com/datascape
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: always()
         with:
           name: Test Results
@@ -361,7 +361,7 @@ jobs:
           chmod +x ./run.sh
           ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://dash-qa-2.adjust.com/datascape
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: always()
         with:
           name: Test Results
