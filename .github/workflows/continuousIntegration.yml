@@ -259,7 +259,7 @@ jobs:
         run: |
           cd e2e
           chmod +x ./run.sh
-          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://${{ env.GITHUB_HEAD_REF_SLUG_URL }}.preview.adjust.com/datascape
+          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://${{ env.GITHUB_HEAD_REF_SLUG_URL }}.preview.adjust.com/datascape '@dex-report and not @ignore'
 
       - uses: actions/upload-artifact@v2
         if: always()
@@ -359,7 +359,7 @@ jobs:
         run: |
           cd e2e
           chmod +x ./run.sh
-          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://dash-qa-2.adjust.com/datascape
+          ./run.sh ${{ secrets.e2e_user_login }} ${{ secrets.e2e_user_password }} https://dash-qa-2.adjust.com/datascape 'not @ignore'
 
       - uses: actions/upload-artifact@v2
         if: always()
