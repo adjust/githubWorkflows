@@ -245,7 +245,7 @@ jobs:
 
       - name: Run E2E on Preview
         if: ${{ github.event_name == 'pull_request' && inputs.e2e_runner == 'npm'}}
-        uses: cypress-io/github-action@v3.2.0
+        uses: cypress-io/github-action@v4.2.0
         env:
           CYPRESS_E2E_USER_LOGIN: ${{ secrets.e2e_user_login }}
           CYPRESS_E2E_USER_PASSWORD: ${{ secrets.e2e_user_password }}
@@ -347,7 +347,7 @@ jobs:
 
       - name: Run E2E on Staging
         if: ${{ endsWith(github.ref, 'heads/staging') && inputs.e2e_runner == 'npm' }}
-        uses: cypress-io/github-action@v3.2.0
+        uses: cypress-io/github-action@v4.2.0
         env:
           CYPRESS_E2E_USER_LOGIN: ${{ secrets.e2e_user_login }}
           CYPRESS_E2E_USER_PASSWORD: ${{ secrets.e2e_user_password }}
